@@ -43,14 +43,13 @@ function BadgePill({ att, meta, compact }: { att: any; meta: WorkflowMeta; compa
             <span
                 className="cwg-tag"
                 role="button"
-                title="Open ComfyUI workflow preview"
+                title="Click to preview the ComfyUI workflow"
                 onClick={() => openWorkflowModal(att, meta)}
             >
                 <NodeIcon />{compact ? "ComfyUI" : "ComfyUI workflow"}{kindTag}
             </span>
 
             {!compact && <>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => openWorkflowModal(att, meta)}>Preview</Button>
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(json, "Workflow JSON copied")}>Copy</Button>
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${baseName}.json`, json)}>Save .json</Button>
                 {meta.prompt && endpoints.map(ep => (

@@ -132,23 +132,42 @@ export function downloadJson(name: string, text: string) {
 
 export interface ParamNode { id: string; classType: string; inputs: Record<string, string>; }
 
-/** Flatten the API (prompt) graph into a readable per-node parameter list. */
-export function extractParams(promptJson?: string): ParamNode[] {
-    if (!promptJson) return [];
-    try {
-        const g = JSON.parse(promptJson);
-        return Object.entries<any>(g)
-            .filter(([, n]) => n && typeof n === "object" && n.class_type)
-            .map(([id, n]) => ({
-                id,
-                classType: n.class_type,
-                inputs: Object.fromEntries(
-                    Object.entries(n.inputs ?? {})
-                        .filter(([, v]) => v === null || typeof v !== "object") // drop link refs ([nodeId, slot])
-                        .map(([k, v]) => [k, String(v)])
-                )
-            }));
-    } catch {
-        return [];
+/** From the API (prompt) graph: each node's named, labelled inputs. */
+function paramsFromPrompt(promptJson: string): ParamNode[] {
+    const g = JSON.parse(promptJson);
+    return Object.entries<any>(g)
+        .filter(([, n]) => n && typeof n === "object" && n.class_type)
+        .map(([id, n]) => ({
+            id,
+            classType: n.class_type,
+            inputs: Object.fromEntries(
+                Object.entries(n.inputs ?? {})
+                    .filter(([, v]) => v === null || typeof v !== "object") // drop link refs ([nodeId, slot])
+                    .map(([k, v]) => [k, String(v)])
+            )
+        }));
+}
+
+/** Fallback from the editor (workflow) graph: node widget values (labelled if stored as an object). */
+function paramsFromWorkflow(workflowJson: string): ParamNode[] {
+    const g = JSON.parse(workflowJson);
+    if (!Array.isArray(g?.nodes)) return [];
+    return g.nodes.map((n: any) => {
+        const wv = n?.widgets_values;
+        const inputs: Record<string, string> = {};
+        if (Array.isArray(wv)) wv.forEach((v, i) => { if (v === null || typeof v !== "object") inputs[`[${i}]`] = String(v); });
+        else if (wv && typeof wv === "object") for (const [k, v] of Object.entries(wv)) { if (v === null || typeof v !== "object") inputs[k] = String(v); }
+        return { id: String(n?.id ?? "?"), classType: String(n?.title || n?.type || "node"), inputs };
+    }).filter((p: ParamNode) => Object.keys(p.inputs).length > 0);
+}
+
+/** Per-node parameter list: prefer the labelled API graph, else the editor graph's widget values. */
+export function extractParams(promptJson?: string, workflowJson?: string): ParamNode[] {
+    if (promptJson) {
+        try { const p = paramsFromPrompt(promptJson); if (p.length) return p; } catch { /* fall through */ }
     }
+    if (workflowJson) {
+        try { return paramsFromWorkflow(workflowJson); } catch { /* none */ }
+    }
+    return [];
 }

@@ -30,9 +30,9 @@ const S = {
     none: { color: "#b9b9b9", fontStyle: "italic", padding: "12px" } as const
 };
 
-function ParamsView({ prompt }: { prompt?: string; }) {
-    const params = extractParams(prompt);
-    if (!params.length) return <div style={S.none}>No API graph (prompt) embedded — parameters unavailable.</div>;
+function ParamsView({ prompt, workflow }: { prompt?: string; workflow?: string; }) {
+    const params = extractParams(prompt, workflow);
+    if (!params.length) return <div style={S.none}>No parameters found in this graph.</div>;
     return (
         <div className="cwg-selectable" style={S.wrap}>
             {params.map(p => {
@@ -106,7 +106,7 @@ function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; met
                 <div className="cwg-modal-panel">
                     <div className="cwg-tabs">
                         {meta.workflow && <button className={tab === "graph" ? "active" : ""} onClick={() => setTab("graph")}>Graph</button>}
-                        {meta.prompt && <button className={tab === "params" ? "active" : ""} onClick={() => setTab("params")}>Parameters</button>}
+                        {(meta.prompt || meta.workflow) && <button className={tab === "params" ? "active" : ""} onClick={() => setTab("params")}>Parameters</button>}
                         <button className={tab === "json" ? "active" : ""} onClick={() => setTab("json")}>JSON</button>
                     </div>
                     {hl && tab === "graph" && (
@@ -117,7 +117,7 @@ function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; met
                     )}
                     <div className="cwg-tabcontent">
                         {tab === "graph" && <WorkflowGraph workflow={meta.workflow!} prompt={meta.prompt} missing={hl?.missing} />}
-                        {tab === "params" && <ParamsView prompt={meta.prompt} />}
+                        {tab === "params" && <ParamsView prompt={meta.prompt} workflow={meta.workflow} />}
                         {tab === "json" && <JsonView meta={meta} />}
                     </div>
                 </div>
