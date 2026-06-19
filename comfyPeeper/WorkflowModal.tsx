@@ -152,10 +152,10 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
             )}
 
             <div className="cwg-footer">
-                <Button size={Button.Sizes.SMALL} color={saved ? Button.Colors.GREEN : Button.Colors.BRAND} onClick={onSave}>
-                    {saved ? "★ Saved" : "★ Save to library"}
+                <Button size={Button.Sizes.SMALL} color={saved ? Button.Colors.GREEN : Button.Colors.BRAND} disabled={saved} onClick={onSave}>
+                    {saved ? "★ In library" : "★ Save to library"}
                 </Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => openLibraryModal()}>📚 Library</Button>
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => { rootProps.onClose(); openLibraryModal(); }}>📚 Library</Button>
                 {meta.workflow && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(meta.workflow!, "Workflow JSON copied")}>Copy workflow</Button>}
                 {meta.workflow && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.workflow.json`, meta.workflow!)}>Save workflow .json</Button>}
                 {meta.prompt && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.prompt.json`, meta.prompt!)}>Save prompt .json</Button>}

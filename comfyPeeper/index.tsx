@@ -6,12 +6,14 @@
 
 import "./styles.css";
 
+import { ChatBarButton, ChatBarButtonFactory } from "@api/ChatButtons";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Button, ChannelStore, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
 
-import { NodeIcon } from "./icons";
+import { NodeIcon, NodeIconComponent } from "./icons";
 import { SaveSource } from "./library";
+import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
 import { copyWithToast, downloadJson, findGraphInText, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
 import { openWorkflowModal } from "./WorkflowModal";
@@ -201,5 +203,17 @@ export default definePlugin({
         <ErrorBoundary noop>
             <Accessory message={props.message} />
         </ErrorBoundary>
-    )
+    ),
+
+    // quick access to the saved-workflow library from the chat bar
+    chatBarButton: {
+        icon: NodeIconComponent,
+        render: (({ isMainChat }) => isMainChat
+            ? (
+                <ChatBarButton tooltip="ComfyPeeper library" onClick={() => openLibraryModal()}>
+                    <NodeIcon size={20} />
+                </ChatBarButton>
+            )
+            : null) as ChatBarButtonFactory
+    }
 });

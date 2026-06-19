@@ -22,6 +22,7 @@ export interface SavedWf {
 }
 
 export interface SaveSource {
+    id?: string; // when re-opening a saved entry, reuse its id (avoids duplicates)
     messageId?: string;
     messageLink?: string;
     sourceUrl?: string;
@@ -48,6 +49,7 @@ export async function removeEntry(id: string): Promise<void> {
 }
 
 export function entryId(att: any, source?: SaveSource): string {
+    if (source?.id) return source.id;
     return `${source?.messageId ?? "x"}:${att?.id ?? "x"}:${att?.filename ?? ""}`;
 }
 

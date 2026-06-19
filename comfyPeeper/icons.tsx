@@ -4,7 +4,16 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
+import { IconComponent } from "@utils/types";
 import { React } from "@webpack/common";
+
+const NODE_PATHS = (
+    <>
+        <rect x="3" y="3" width="8" height="8" rx="2" />
+        <path d="M7 11v4a2 2 0 0 0 2 2h4" />
+        <rect x="13" y="13" width="8" height="8" rx="2" />
+    </>
+);
 
 /** Node-graph / "workflow" glyph (two connected nodes) — ComfyPeeper's identity mark. */
 export function NodeIcon({ size = 16 }: { size?: number; }) {
@@ -21,9 +30,25 @@ export function NodeIcon({ size = 16 }: { size?: number; }) {
             style={{ flexShrink: 0, display: "block" }}
             aria-hidden="true"
         >
-            <rect x="3" y="3" width="8" height="8" rx="2" />
-            <path d="M7 11v4a2 2 0 0 0 2 2h4" />
-            <rect x="13" y="13" width="8" height="8" rx="2" />
+            {NODE_PATHS}
         </svg>
     );
 }
+
+/** Same glyph in Vencord's IconComponent shape (for the chat-bar button). */
+export const NodeIconComponent: IconComponent = ({ width = 24, height = 24, className }) => (
+    <svg
+        width={width}
+        height={height}
+        className={className}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+    >
+        {NODE_PATHS}
+    </svg>
+);
