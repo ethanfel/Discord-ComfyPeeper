@@ -387,3 +387,22 @@ export async function getMissingNodes(
         return { ok: false, error: String(e) };
     }
 }
+
+/** Fetch raw bytes (base64) — used to make a local thumbnail that survives post deletion. */
+export async function fetchBytes(
+    _: IpcMainInvokeEvent,
+    url: string,
+    maxBytes: number
+): Promise<{ ok: boolean; base64?: string; error?: string; }> {
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+        const len = Number(res.headers.get("content-length") ?? 0);
+        if (maxBytes && len && len > maxBytes) return { ok: false, error: "too large" };
+        const ab = await res.arrayBuffer();
+        if (maxBytes && ab.byteLength > maxBytes) return { ok: false, error: "too large" };
+        return { ok: true, base64: Buffer.from(ab).toString("base64") };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}

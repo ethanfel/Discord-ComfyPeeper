@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Modal, openModal, React, useState } from "@webpack/common";
+import { Button, Modal, openModal, React, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
+import { entryId, hasEntry, SaveSource, saveToLibrary } from "./library";
+import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
 import { checkServer, copyWithToast, downloadJson, extractParams, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
 import { WorkflowGraph } from "./WorkflowGraph";
@@ -70,12 +72,20 @@ function JsonView({ meta }: { meta: WorkflowMeta; }) {
     );
 }
 
-function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; meta: WorkflowMeta; }) {
+function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: any; meta: WorkflowMeta; source?: SaveSource; }) {
     const [tab, setTab] = useState<"graph" | "params" | "json">(meta.workflow ? "graph" : (meta.prompt ? "params" : "json"));
     const [compat, setCompat] = useState<ServerCheck[] | null>(null);
     const [checking, setChecking] = useState(false);
     const [hl, setHl] = useState<{ label: string; missing: string[]; } | null>(null);
+    const [saved, setSaved] = useState(false);
     const endpoints = parseEndpoints(settings.store.endpoints);
+
+    useEffect(() => { hasEntry(entryId(att, source)).then(setSaved); }, []);
+    const onSave = async () => {
+        await saveToLibrary(att, meta, source);
+        setSaved(true);
+        showToast("Saved to library ★", Toasts.Type.SUCCESS);
+    };
     const base = (att.filename || "workflow").replace(/\.[^.]+$/, "");
     const isVideo = (att.content_type || "").includes("video") || /\.(mp4|mov|m4v|webm|mkv)$/i.test(att.filename || "");
     const isImage = (att.content_type || "").includes("image") || /\.(png|webp|jpe?g|gif)$/i.test(att.filename || "");
@@ -142,6 +152,10 @@ function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; met
             )}
 
             <div className="cwg-footer">
+                <Button size={Button.Sizes.SMALL} color={saved ? Button.Colors.GREEN : Button.Colors.BRAND} onClick={onSave}>
+                    {saved ? "★ Saved" : "★ Save to library"}
+                </Button>
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => openLibraryModal()}>📚 Library</Button>
                 {meta.workflow && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(meta.workflow!, "Workflow JSON copied")}>Copy workflow</Button>}
                 {meta.workflow && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.workflow.json`, meta.workflow!)}>Save workflow .json</Button>}
                 {meta.prompt && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.prompt.json`, meta.prompt!)}>Save prompt .json</Button>}
@@ -160,6 +174,6 @@ function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; met
     );
 }
 
-export function openWorkflowModal(att: any, meta: WorkflowMeta) {
-    openModal(rootProps => <WorkflowModal rootProps={rootProps} att={att} meta={meta} />);
+export function openWorkflowModal(att: any, meta: WorkflowMeta, source?: SaveSource) {
+    openModal(rootProps => <WorkflowModal rootProps={rootProps} att={att} meta={meta} source={source} />);
 }

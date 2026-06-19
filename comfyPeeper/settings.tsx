@@ -6,8 +6,18 @@
 
 import { definePluginSettings } from "@api/Settings";
 import { OptionType } from "@utils/types";
+import { Button, React } from "@webpack/common";
+
+import { openLibraryModal } from "./LibraryModal";
 
 export const settings = definePluginSettings({
+    openLibrary: {
+        type: OptionType.COMPONENT,
+        description: "Saved workflows library",
+        component: () => (
+            <Button onClick={() => openLibraryModal()}>📚 Open saved workflows library</Button>
+        )
+    },
     badgeMode: {
         type: OptionType.SELECT,
         description: "Where to show the workflow badge",

@@ -8,9 +8,10 @@ import "./styles.css";
 
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
-import { Button, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
+import { Button, ChannelStore, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
+import { SaveSource } from "./library";
 import { settings } from "./settings";
 import { copyWithToast, downloadJson, findGraphInText, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
 import { openWorkflowModal } from "./WorkflowModal";
@@ -32,7 +33,7 @@ function findMedia(scope: ParentNode, att: any): HTMLElement | null {
     }) ?? null;
 }
 
-function BadgePill({ att, meta, compact }: { att: any; meta: WorkflowMeta; compact?: boolean; }) {
+function BadgePill({ att, meta, compact, source }: { att: any; meta: WorkflowMeta; compact?: boolean; source?: SaveSource; }) {
     const endpoints = parseEndpoints(settings.store.endpoints);
     const json = meta.workflow ?? meta.prompt!;
     const baseName = (att.filename || "workflow").replace(/\.[^.]+$/, "");
@@ -44,7 +45,7 @@ function BadgePill({ att, meta, compact }: { att: any; meta: WorkflowMeta; compa
                 className="cwg-tag"
                 role="button"
                 title="Click to preview the ComfyUI workflow"
-                onClick={() => openWorkflowModal(att, meta)}
+                onClick={() => openWorkflowModal(att, meta, source)}
             >
                 <NodeIcon />{compact ? "ComfyUI" : "ComfyUI workflow"}{kindTag}
             </span>
@@ -62,7 +63,7 @@ function BadgePill({ att, meta, compact }: { att: any; meta: WorkflowMeta; compa
     );
 }
 
-function WorkflowControls({ att, kind }: { att: any; kind: Kind; }) {
+function WorkflowControls({ att, kind, source }: { att: any; kind: Kind; source?: SaveSource; }) {
     const [meta, setMeta] = useState<WorkflowMeta | null>(null);
     const [busy, setBusy] = useState(false);
     const [host, setHost] = useState<HTMLElement | null>(null);
@@ -144,10 +145,17 @@ function WorkflowControls({ att, kind }: { att: any; kind: Kind; }) {
     return (
         <>
             <span ref={anchorRef} className="cwg-anchor" data-cwg={String(att.id)} />
-            {host && wantOverlay && ReactDOM.createPortal(<BadgePill att={att} meta={meta} compact />, host)}
-            {showBelow && <BadgePill att={att} meta={meta} />}
+            {host && wantOverlay && ReactDOM.createPortal(<BadgePill att={att} meta={meta} source={source} compact />, host)}
+            {showBelow && <BadgePill att={att} meta={meta} source={source} />}
         </>
     );
+}
+
+function messageLinkOf(message: any): string | undefined {
+    try {
+        const guildId = ChannelStore.getChannel(message.channel_id)?.guild_id ?? "@me";
+        return `https://discord.com/channels/${guildId}/${message.channel_id}/${message.id}`;
+    } catch { return undefined; }
 }
 
 function Accessory({ message }: { message: any; }) {
@@ -157,13 +165,23 @@ function Accessory({ message }: { message: any; }) {
     // a workflow can also be pasted as raw JSON / a code block in the message body
     const textGraph = React.useMemo(() => findGraphInText(message?.content), [message?.content]);
     if (!atts.length && !textGraph) return null;
+
+    const messageLink = messageLinkOf(message);
     return (
         <>
-            {atts.map(({ a, kind }: any) => <WorkflowControls key={a.id} att={a} kind={kind} />)}
+            {atts.map(({ a, kind }: any) => (
+                <WorkflowControls
+                    key={a.id}
+                    att={a}
+                    kind={kind}
+                    source={{ messageId: message.id, messageLink, sourceUrl: a.url, isImage: kind === "png" || kind === "webp" }}
+                />
+            ))}
             {textGraph && (
                 <BadgePill
                     att={{ id: `txt-${message.id}`, filename: "pasted-workflow.json", content_type: "application/json" }}
                     meta={textGraph}
+                    source={{ messageId: message.id, messageLink }}
                 />
             )}
         </>

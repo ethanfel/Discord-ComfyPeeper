@@ -27,6 +27,7 @@ workflow straight to a ComfyUI instance — local *or* remote.
 - 💾 **Copy / Save** the workflow or prompt as `.json`.
 - ▶️ **Queue to ComfyUI** — POST the workflow to a running instance, with **one button per configured server** (local and/or remote).
 - ✅ **Server compatibility check** — see which of your servers can actually run a workflow, and which **custom nodes are missing** — highlighted **in red on the graph**, just like ComfyUI.
+- 📚 **Local library** — **★ Save** any workflow to an offline library (stored in-plugin via IndexedDB) with a thumbnail and a jump-link back to the post. Keeps your workflows **even if the original message is deleted** — no need to keep them sitting in Discord. Open it from the plugin settings (*“📚 Open saved workflows library”*) or the **Library** button in the previewer.
 
 ## 📸 Screenshots
 
