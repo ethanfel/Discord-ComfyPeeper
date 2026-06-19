@@ -20,7 +20,7 @@ export interface WorkflowMeta {
     ok: boolean;
     workflow?: string;
     prompt?: string;
-    kind?: "png" | "webp" | "video" | "json" | "unknown";
+    kind?: "png" | "webp" | "video" | "json" | "text" | "unknown";
     error?: string;
 }
 
@@ -159,6 +159,44 @@ function paramsFromWorkflow(workflowJson: string): ParamNode[] {
         else if (wv && typeof wv === "object") for (const [k, v] of Object.entries(wv)) { if (v === null || typeof v !== "object") inputs[k] = String(v); }
         return { id: String(n?.id ?? "?"), classType: String(n?.title || n?.type || "node"), inputs };
     }).filter((p: ParamNode) => Object.keys(p.inputs).length > 0);
+}
+
+/* ---- detect a workflow pasted as raw JSON / a code block in message text ---- */
+
+function balancedObj(text: string, start: number): string | null {
+    let depth = 0, inStr = false, esc = false;
+    for (let i = start; i < text.length; i++) {
+        const c = text[i];
+        if (inStr) {
+            if (esc) esc = false; else if (c === "\\") esc = true; else if (c === "\"") inStr = false;
+        } else if (c === "\"") inStr = true;
+        else if (c === "{") depth++;
+        else if (c === "}") { if (--depth === 0) return text.slice(start, i + 1); }
+    }
+    return null;
+}
+
+/** Outermost balanced JSON object containing `marker` that actually parses. */
+function enclosingJson(text: string, marker: string): string | undefined {
+    const idx = text.indexOf(marker);
+    if (idx === -1) return undefined;
+    for (let s = text.indexOf("{"); s !== -1 && s <= idx; s = text.indexOf("{", s + 1)) {
+        const obj = balancedObj(text, s);
+        if (obj && s + obj.length > idx) {
+            try { JSON.parse(obj); return obj; } catch { /* keep scanning */ }
+        }
+    }
+    return undefined;
+}
+
+/** Find a ComfyUI graph pasted in a message body (raw or in a ``` code block). */
+export function findGraphInText(content?: string): WorkflowMeta | null {
+    if (!content) return null;
+    if (!content.includes("class_type") && !content.includes("last_node_id") && !content.includes("last_link_id")) return null;
+    const prompt = enclosingJson(content, "\"class_type\"");
+    const workflow = enclosingJson(content, "\"last_node_id\"") ?? enclosingJson(content, "\"last_link_id\"");
+    if (!workflow && !prompt) return null;
+    return { ok: true, kind: "text", workflow, prompt };
 }
 
 /** Per-node parameter list: prefer the labelled API graph, else the editor graph's widget values. */

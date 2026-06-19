@@ -20,7 +20,7 @@ workflow straight to a ComfyUI instance — local *or* remote.
 
 ## ✨ Features
 
-- **Auto-detect** ComfyUI workflows embedded in **PNG, WebP, MP4/MOV, and WebM/MKV** attachments — or posted directly as a **`.json`** file (exported workflow *or* API prompt) — with a node-graph badge on the media (or below the message).
+- **Auto-detect** ComfyUI workflows embedded in **PNG, WebP, MP4/MOV, and WebM/MKV** attachments, posted directly as a **`.json`** file, or even **pasted as raw JSON / a code block** in a message — with a node-graph badge on the media (or below the message).
 - 🔬 **Interactive graph preview** — a faithful node-graph render (pan, zoom-to-cursor, fit) showing each node's title, connections, and widget values.
 - 📋 **Parameters view** — every node's settings as a clean, copyable list (seed, steps, cfg, sampler, prompts, LoRAs…).
 - 🧾 **Raw JSON** — both the editor `workflow` and the API `prompt` graphs, selectable and copyable.

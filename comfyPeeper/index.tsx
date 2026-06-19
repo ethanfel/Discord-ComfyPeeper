@@ -12,7 +12,7 @@ import { Button, React, ReactDOM, useEffect, useRef, useState } from "@webpack/c
 
 import { NodeIcon } from "./icons";
 import { settings } from "./settings";
-import { copyWithToast, downloadJson, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
+import { copyWithToast, downloadJson, findGraphInText, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
 import { openWorkflowModal } from "./WorkflowModal";
 
 /** Find the rendered <img>/<video> in a message that corresponds to this attachment. */
@@ -154,15 +154,28 @@ function Accessory({ message }: { message: any; }) {
     const atts = (message?.attachments ?? [])
         .map((a: any) => ({ a, kind: kindOf(a) }))
         .filter((x: any) => x.kind);
-    if (!atts.length) return null;
-    return <>{atts.map(({ a, kind }: any) => <WorkflowControls key={a.id} att={a} kind={kind} />)}</>;
+    // a workflow can also be pasted as raw JSON / a code block in the message body
+    const textGraph = React.useMemo(() => findGraphInText(message?.content), [message?.content]);
+    if (!atts.length && !textGraph) return null;
+    return (
+        <>
+            {atts.map(({ a, kind }: any) => <WorkflowControls key={a.id} att={a} kind={kind} />)}
+            {textGraph && (
+                <BadgePill
+                    att={{ id: `txt-${message.id}`, filename: "pasted-workflow.json", content_type: "application/json" }}
+                    meta={textGraph}
+                />
+            )}
+        </>
+    );
 }
 
 export default definePlugin({
     name: "ComfyPeeper",
     description:
-        "Detects ComfyUI workflows embedded in Discord images/videos (PNG, WebP, MP4), badges them, " +
-        "and lets you preview the graph, copy/save the JSON, or queue it directly to a ComfyUI instance (local or remote).",
+        "Detects ComfyUI workflows in Discord media (PNG/WebP/MP4/WebM/MKV), .json files, or pasted JSON, " +
+        "badges them, and lets you preview the graph + parameters, copy/save the JSON, or queue it directly " +
+        "to a ComfyUI instance (local or remote, with a missing-node check).",
     authors: [{ name: "ethanfel", id: 0n }],
     settings,
 
