@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" font-family="'DejaVu Sans','Noto Sans',sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#15161a"/>
+      <stop offset="1" stop-color="#202127"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.72" cy="0.42" r="0.55">
+      <stop offset="0" stop-color="#5865f2" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#5865f2" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#c8ccff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect width="1280" height="640" fill="url(#glow)"/>
+  <rect x="8" y="8" width="1264" height="624" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.06" stroke-width="2"/>
+
+  <!-- decorative node graph + magnifier ("peeping" into a workflow) -->
+  <g opacity="0.96">
+    <!-- links -->
+    <g fill="none" stroke="#7c86ff" stroke-width="4" stroke-opacity="0.8">
+      <path d="M 854 250 C 920 250 905 205 968 205"/>
+      <path d="M 854 268 C 940 268 980 392 1004 392"/>
+      <path d="M 1128 230 C 1170 230 1090 392 1066 392"/>
+    </g>
+    <!-- node A -->
+    <g>
+      <rect x="700" y="208" width="156" height="92" rx="12" fill="#2b2d31" stroke="#000000" stroke-opacity="0.4"/>
+      <path d="M700 232 v-12 a12 12 0 0 1 12 -12 h132 a12 12 0 0 1 12 12 v12 Z" fill="#5865f2"/>
+      <rect x="714" y="248" width="128" height="9" rx="4.5" fill="#4a4d55"/>
+      <rect x="714" y="266" width="96" height="9" rx="4.5" fill="#4a4d55"/>
+      <circle cx="700" cy="252" r="5" fill="#43b581"/><circle cx="856" cy="252" r="5" fill="#c9cdd6"/>
+    </g>
+    <!-- node B -->
+    <g>
+      <rect x="972" y="162" width="158" height="92" rx="12" fill="#2b2d31" stroke="#000000" stroke-opacity="0.4"/>
+      <path d="M972 186 v-12 a12 12 0 0 1 12 -12 h134 a12 12 0 0 1 12 12 v12 Z" fill="#9b59b6"/>
+      <rect x="986" y="202" width="120" height="9" rx="4.5" fill="#4a4d55"/>
+      <rect x="986" y="220" width="84" height="9" rx="4.5" fill="#4a4d55"/>
+      <circle cx="972" cy="206" r="5" fill="#c9cdd6"/><circle cx="1130" cy="206" r="5" fill="#c9cdd6"/>
+    </g>
+    <!-- node C -->
+    <g>
+      <rect x="952" y="348" width="170" height="100" rx="12" fill="#2b2d31" stroke="#000000" stroke-opacity="0.4"/>
+      <path d="M952 372 v-12 a12 12 0 0 1 12 -12 h146 a12 12 0 0 1 12 12 v12 Z" fill="#5865f2"/>
+      <rect x="966" y="388" width="132" height="9" rx="4.5" fill="#4a4d55"/>
+      <rect x="966" y="406" width="100" height="9" rx="4.5" fill="#4a4d55"/>
+      <rect x="966" y="424" width="116" height="9" rx="4.5" fill="#4a4d55"/>
+      <circle cx="952" cy="392" r="5" fill="#43b581"/><circle cx="1122" cy="392" r="5" fill="#c9cdd6"/>
+    </g>
+
+    <!-- magnifier -->
+    <g>
+      <circle cx="1006" cy="300" r="118" fill="#9aa3ff" fill-opacity="0.07"/>
+      <circle cx="1006" cy="300" r="118" fill="none" stroke="#ffffff" stroke-width="12"/>
+      <circle cx="1006" cy="300" r="118" fill="none" stroke="#5865f2" stroke-width="4"/>
+      <line x1="1090" y1="384" x2="1168" y2="462" stroke="#ffffff" stroke-width="24" stroke-linecap="round"/>
+      <line x1="1090" y1="384" x2="1168" y2="462" stroke="#5865f2" stroke-width="10" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- left text block -->
+  <text x="92" y="214" fill="#8c93ff" font-size="24" font-weight="bold" letter-spacing="4">VENCORD PLUGIN · COMFYUI WORKFLOWS</text>
+  <text x="88" y="330" fill="url(#title)" font-size="104" font-weight="bold" letter-spacing="-2">ComfyPeeper</text>
+  <rect x="94" y="352" width="392" height="7" rx="3.5" fill="#5865f2"/>
+
+  <text x="92" y="420" fill="#c7ccd4" font-size="31">Reveal &amp; run the ComfyUI workflow hidden</text>
+  <text x="92" y="462" fill="#c7ccd4" font-size="31">inside any Discord image, video or GIF.</text>
+
+  <!-- feature chips -->
+  <g font-size="21" font-weight="bold">
+    <g>
+      <rect x="92" y="512" width="352" height="46" rx="23" fill="#5865f2" fill-opacity="0.16" stroke="#5865f2" stroke-opacity="0.5"/>
+      <text x="268" y="541" fill="#c8ccff" text-anchor="middle">PNG · WebP · MP4 · WebM/MKV</text>
+    </g>
+    <g>
+      <rect x="458" y="512" width="194" height="46" rx="23" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.18"/>
+      <text x="555" y="541" fill="#e6e8ee" text-anchor="middle">Graph + Params</text>
+    </g>
+    <g>
+      <rect x="666" y="512" width="226" height="46" rx="23" fill="#43b581" fill-opacity="0.16" stroke="#43b581" stroke-opacity="0.5"/>
+      <text x="779" y="541" fill="#a7e6c8" text-anchor="middle">▶ Queue to ComfyUI</text>
+    </g>
+  </g>
+</svg>

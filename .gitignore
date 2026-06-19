@@ -1,0 +1,13 @@
+# build output / deps (this repo only holds plugin source + docs)
+node_modules/
+dist/
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# local backups
+*.bak
+*.bak.*

@@ -1,0 +1,229 @@
+/* ---- badge (below message & overlay) ---- */
+.cwg-anchor { display: none; }
+
+.cwg-badge {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0 2px;
+}
+
+.cwg-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    background: var(--brand-500, #5865f2);
+    cursor: pointer;
+    user-select: none;
+}
+.cwg-tag:hover { filter: brightness(1.1); }
+
+.cwg-none {
+    font-size: 11px;
+    color: var(--text-muted, #949ba4);
+    font-style: italic;
+}
+
+.cwg-check {
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 12px;
+    border: 1px solid var(--background-modifier-accent, #4f545c66);
+    background: var(--background-secondary, #2b2d31);
+    color: var(--text-normal, #dbdee1);
+}
+.cwg-check:hover { background: var(--background-modifier-hover, #393c41); }
+.cwg-check:disabled { opacity: .6; cursor: default; }
+
+/* overlay host pinned to the top-left of the image */
+.cwg-overlay-host {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 2;
+    pointer-events: none;
+}
+.cwg-overlay-host .cwg-badge { margin: 0; pointer-events: auto; }
+.cwg-overlay-host .cwg-tag {
+    background: rgba(0, 0, 0, .72);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+    backdrop-filter: blur(2px);
+}
+
+/* ---- modal ---- */
+.cwg-modal-title {
+    flex-grow: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--header-primary, #f2f3f5);
+}
+
+.cwg-modal-body {
+    display: flex;
+    gap: 14px;
+    min-height: 60vh;
+    padding: 8px 0;
+}
+.cwg-modal-media {
+    flex: 0 0 42%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow: auto;
+}
+.cwg-media {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 8px;
+    background: #00000033;
+}
+.cwg-modal-panel {
+    flex: 1 1 58%;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* tabs */
+.cwg-tabs, .cwg-json-head {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+.cwg-tabs button, .cwg-json-head button {
+    padding: 4px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-size: 13px;
+    background: var(--background-secondary, #2b2d31);
+    color: var(--text-normal, #dbdee1);
+}
+.cwg-tabs button.active, .cwg-json-head button.active {
+    background: var(--brand-500, #5865f2);
+    color: #fff;
+}
+.cwg-json-head .cwg-json-copy { margin-left: auto; }
+
+.cwg-tabcontent {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.cwg-empty {
+    color: var(--text-muted, #949ba4);
+    font-style: italic;
+    padding: 12px;
+}
+
+/* graph */
+.cwg-graph {
+    display: flex;
+    flex-direction: column;
+    height: 64vh;
+    border: 1px solid var(--background-modifier-accent, #4f545c44);
+    border-radius: 8px;
+    overflow: hidden;
+    background:
+        linear-gradient(var(--background-tertiary, #1e1f22) 0 0) padding-box,
+        repeating-linear-gradient(0deg, #ffffff08 0 1px, transparent 1px 22px),
+        repeating-linear-gradient(90deg, #ffffff08 0 1px, transparent 1px 22px);
+}
+.cwg-graph-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--text-muted, #949ba4);
+    border-bottom: 1px solid var(--background-modifier-accent, #4f545c44);
+    background: var(--background-secondary, #2b2d31);
+}
+.cwg-graph-toolbar button {
+    padding: 2px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background: var(--brand-500, #5865f2);
+    color: #fff;
+}
+.cwg-graph-hint { margin-left: auto; }
+.cwg-graph-svg { flex: 1 1 auto; width: 100%; cursor: grab; }
+.cwg-graph-svg:active { cursor: grabbing; }
+
+.cwg-link { fill: none; stroke: #9aa0ff; stroke-width: 2; opacity: .8; }
+.cwg-node { fill: #353535; stroke: #00000066; stroke-width: 1; }
+.cwg-node-missing { stroke: #ff4d4d; stroke-width: 3; }
+.cwg-node-missing-tag { fill: #ff6b6b; font-size: 11px; font-weight: 700; text-anchor: end; font-family: var(--font-primary, sans-serif); }
+.cwg-node-title { fill: #2a2a2a; }
+.cwg-node-text { fill: #fff; font-size: 14px; font-weight: 600; font-family: var(--font-primary, sans-serif); }
+.cwg-slot { fill: #d7d7d7; stroke: #00000066; }
+.cwg-slot-label { fill: #c7c7c7; font-size: 11px; font-family: var(--font-primary, sans-serif); }
+.cwg-slot-in { text-anchor: start; }
+.cwg-slot-out { text-anchor: end; }
+.cwg-widget { fill: #d6d6d6; font-size: 11px; font-family: var(--font-code, monospace); }
+.cwg-widget-more { fill: #8a8a8a; font-style: italic; }
+
+/* make data selectable/copyable (Discord sets user-select:none globally) */
+.cwg-selectable,
+.cwg-selectable * {
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    cursor: auto;
+}
+
+/* parameters — hardcoded colors so they render regardless of theme/inheritance */
+.cwg-params { overflow: auto; max-height: 64vh; display: flex; flex-direction: column; gap: 8px; }
+.cwg-param-node {
+    border: 1px solid #ffffff1f;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #00000026;
+}
+.cwg-param-title {
+    background: #5865f2;
+    padding: 4px 10px;
+    font-weight: 700;
+    font-size: 13px;
+    color: #ffffff;
+}
+.cwg-param-row {
+    display: flex;
+    gap: 10px;
+    padding: 3px 10px;
+    font-size: 12px;
+    border-top: 1px solid #ffffff14;
+    font-family: var(--font-code, monospace);
+}
+.cwg-param-row .cwg-k { flex: 0 0 42%; color: #aab4c0; }
+.cwg-param-row .cwg-v { flex: 1 1 auto; color: #ffffff; word-break: break-word; white-space: pre-wrap; }
+.cwg-param-empty { color: #8a8a8a; font-style: italic; }
+
+/* json */
+.cwg-json { display: flex; flex-direction: column; height: 64vh; }
+.cwg-pre {
+    flex: 1 1 auto;
+    overflow: auto;
+    margin: 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--background-tertiary, #1e1f22);
+    color: var(--text-normal, #dbdee1);
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: var(--font-code, monospace);
+    white-space: pre;
+}
+
+/* footer */
+.cwg-footer { display: flex; flex-wrap: wrap; gap: 8px; }
