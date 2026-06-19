@@ -6,6 +6,7 @@
 
 import { Button, Modal, openModal, React, useState } from "@webpack/common";
 
+import { NodeIcon } from "./icons";
 import { settings } from "./settings";
 import { checkServer, copyWithToast, downloadJson, extractParams, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
 import { WorkflowGraph } from "./WorkflowGraph";
@@ -91,7 +92,7 @@ function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; met
     };
 
     return (
-        <Modal {...rootProps} size="xl" title={<span className="cwg-modal-title">🧩 ComfyUI Workflow — {att.filename || "image"}</span>}>
+        <Modal {...rootProps} size="xl" title={<span className="cwg-modal-title" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><NodeIcon size={18} />ComfyUI Workflow — {att.filename || "image"}</span>}>
             <div className="cwg-modal-body">
                 <div className="cwg-modal-media">
                     {isVideo

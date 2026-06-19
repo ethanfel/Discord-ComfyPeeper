@@ -20,7 +20,7 @@ workflow straight to a ComfyUI instance — local *or* remote.
 
 ## ✨ Features
 
-- 🧩 **Auto-detect** ComfyUI workflows embedded in **PNG, WebP, MP4/MOV, and WebM/MKV** attachments, with a badge on the image (or below the message).
+- **Auto-detect** ComfyUI workflows embedded in **PNG, WebP, MP4/MOV, and WebM/MKV** attachments, with a node-graph badge on the image (or below the message).
 - 🔬 **Interactive graph preview** — a faithful node-graph render (pan, zoom-to-cursor, fit) showing each node's title, connections, and widget values.
 - 📋 **Parameters view** — every node's settings as a clean, copyable list (seed, steps, cfg, sampler, prompts, LoRAs…).
 - 🧾 **Raw JSON** — both the editor `workflow` and the API `prompt` graphs, selectable and copyable.
@@ -87,12 +87,12 @@ VENCORD_DIR=~/Vencord ./scripts/install-vesktop.sh
 |--------------|-------------|
 | **endpoints** | Comma-separated ComfyUI servers, optionally labelled: `Local = http://127.0.0.1:8188, Remote = https://gpu.example.com:8188`. A `Queue → <label>` button appears per server. |
 | **badgeMode** | `Overlay on the image` (default, falls back to below-message), `Below the message`, or `Both`. |
-| **autoScan**  | Auto-scan attachments (default on). Off → a small "🧩 Check workflow" button instead (saves bandwidth). |
+| **autoScan**  | Auto-scan attachments (default on). Off → a small "Check workflow" button instead (saves bandwidth). |
 | **maxSizeMB** | Skip files larger than this when scanning (default 40 MB; videos read only the metadata region). |
 
 ## 🧭 Usage
 
-1. Drop (or scroll to) a ComfyUI image/video in any channel → a 🧩 **ComfyUI workflow** badge appears.
+1. Drop (or scroll to) a ComfyUI image/video in any channel → a **ComfyUI workflow** badge appears on it.
 2. Click it to open the previewer: **Graph**, **Parameters**, and **JSON** tabs.
 3. **Copy / Save** the workflow, or **Queue → \<server\>** to run it.
 4. Not sure a server has the right nodes? Hit **Check servers** — green = can run, red = missing nodes (click a red server to highlight the missing nodes on the graph).

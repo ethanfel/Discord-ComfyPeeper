@@ -10,6 +10,7 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Button, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
 
+import { NodeIcon } from "./icons";
 import { settings } from "./settings";
 import { copyWithToast, downloadJson, getMeta, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
 import { openWorkflowModal } from "./WorkflowModal";
@@ -45,7 +46,7 @@ function BadgePill({ att, meta, compact }: { att: any; meta: WorkflowMeta; compa
                 title="Open ComfyUI workflow preview"
                 onClick={() => openWorkflowModal(att, meta)}
             >
-                🧩 {compact ? "ComfyUI" : "ComfyUI workflow"}{kindTag}
+                <NodeIcon />{compact ? "ComfyUI" : "ComfyUI workflow"}{kindTag}
             </span>
 
             {!compact && <>
@@ -126,7 +127,7 @@ function WorkflowControls({ att, kind }: { att: any; kind: "png" | "webp" | "vid
         return (
             <div className="cwg-badge">
                 <button className="cwg-check" disabled={busy} onClick={scan}>
-                    {busy ? "Checking…" : "🧩 Check workflow"}
+                    <NodeIcon size={13} />{busy ? "Checking…" : "Check workflow"}
                 </button>
             </div>
         );

@@ -63,7 +63,7 @@
   </g>
 
   <!-- left text block -->
-  <text x="92" y="214" fill="#8c93ff" font-size="24" font-weight="bold" letter-spacing="4">VENCORD PLUGIN · COMFYUI WORKFLOWS</text>
+  <text x="92" y="214" fill="#8c93ff" font-size="24" font-weight="bold" letter-spacing="4">VENCORD PLUGIN · COMFYUI</text>
   <text x="88" y="330" fill="url(#title)" font-size="104" font-weight="bold" letter-spacing="-2">ComfyPeeper</text>
   <rect x="94" y="352" width="392" height="7" rx="3.5" fill="#5865f2"/>
 
@@ -71,18 +71,18 @@
   <text x="92" y="462" fill="#c7ccd4" font-size="31">inside any Discord image, video or GIF.</text>
 
   <!-- feature chips -->
-  <g font-size="21" font-weight="bold">
+  <g font-size="21" font-weight="bold" text-anchor="middle" dominant-baseline="central">
     <g>
-      <rect x="92" y="512" width="352" height="46" rx="23" fill="#5865f2" fill-opacity="0.16" stroke="#5865f2" stroke-opacity="0.5"/>
-      <text x="268" y="541" fill="#c8ccff" text-anchor="middle">PNG · WebP · MP4 · WebM/MKV</text>
+      <rect x="92" y="502" width="356" height="56" rx="28" fill="#5865f2" fill-opacity="0.16" stroke="#5865f2" stroke-opacity="0.5"/>
+      <text x="270" y="531" fill="#c8ccff">PNG · WebP · MP4 · WebM/MKV</text>
     </g>
     <g>
-      <rect x="458" y="512" width="194" height="46" rx="23" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.18"/>
-      <text x="555" y="541" fill="#e6e8ee" text-anchor="middle">Graph + Params</text>
+      <rect x="468" y="502" width="198" height="56" rx="28" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.18"/>
+      <text x="567" y="531" fill="#e6e8ee">Graph + Params</text>
     </g>
     <g>
-      <rect x="666" y="512" width="226" height="46" rx="23" fill="#43b581" fill-opacity="0.16" stroke="#43b581" stroke-opacity="0.5"/>
-      <text x="779" y="541" fill="#a7e6c8" text-anchor="middle">▶ Queue to ComfyUI</text>
+      <rect x="686" y="502" width="232" height="56" rx="28" fill="#43b581" fill-opacity="0.16" stroke="#43b581" stroke-opacity="0.5"/>
+      <text x="802" y="531" fill="#a7e6c8">▶ Queue to ComfyUI</text>
     </g>
   </g>
 </svg>
