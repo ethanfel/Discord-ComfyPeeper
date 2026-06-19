@@ -11,7 +11,7 @@ attachments, badges them, and lets you inspect the node graph, copy/save the JSO
 workflow straight to a ComfyUI instance — local *or* remote.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-5865f2.svg)](LICENSE)
-![Formats](https://img.shields.io/badge/formats-PNG%20%C2%B7%20WebP%20%C2%B7%20MP4%20%C2%B7%20WebM%2FMKV-43b581)
+![Formats](https://img.shields.io/badge/formats-PNG%20%C2%B7%20WebP%20%C2%B7%20MP4%20%C2%B7%20WebM%2FMKV%20%C2%B7%20JSON-43b581)
 ![Client](https://img.shields.io/badge/Vencord%20%2F%20Vesktop-from%20source-5865f2)
 
 </div>
@@ -20,7 +20,7 @@ workflow straight to a ComfyUI instance — local *or* remote.
 
 ## ✨ Features
 
-- **Auto-detect** ComfyUI workflows embedded in **PNG, WebP, MP4/MOV, and WebM/MKV** attachments, with a node-graph badge on the image (or below the message).
+- **Auto-detect** ComfyUI workflows embedded in **PNG, WebP, MP4/MOV, and WebM/MKV** attachments — or posted directly as a **`.json`** file (exported workflow *or* API prompt) — with a node-graph badge on the media (or below the message).
 - 🔬 **Interactive graph preview** — a faithful node-graph render (pan, zoom-to-cursor, fit) showing each node's title, connections, and widget values.
 - 📋 **Parameters view** — every node's settings as a clean, copyable list (seed, steps, cfg, sampler, prompts, LoRAs…).
 - 🧾 **Raw JSON** — both the editor `workflow` and the API `prompt` graphs, selectable and copyable.
@@ -53,6 +53,7 @@ ComfyUI saves two graphs in the files it exports:
 | WebP       | EXIF (`Make` = workflow, `Model` = prompt)                  |
 | MP4 / MOV  | the `moov` atom (libav container metadata)                  |
 | WebM / MKV | Matroska `Tags` (EBML) — scanned at the file's head & tail  |
+| `.json`    | the file itself — an exported `workflow` or API `prompt` graph |
 
 All fetching and parsing happens in Vencord's **native (main) process**, so there are no CORS or
 mixed-content restrictions — that's why plain-`http` local endpoints work. For videos it fetches

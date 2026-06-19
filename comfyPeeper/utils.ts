@@ -20,11 +20,11 @@ export interface WorkflowMeta {
     ok: boolean;
     workflow?: string;
     prompt?: string;
-    kind?: "png" | "webp" | "video" | "unknown";
+    kind?: "png" | "webp" | "video" | "json" | "unknown";
     error?: string;
 }
 
-export type Kind = "png" | "webp" | "video";
+export type Kind = "png" | "webp" | "video" | "json";
 
 export function kindOf(att: any): Kind | null {
     const ct = (att?.content_type || "").toLowerCase();
@@ -33,8 +33,12 @@ export function kindOf(att: any): Kind | null {
     if (ct.includes("webp") || name.endsWith(".webp")) return "webp";
     if (ct.includes("mp4") || ct.includes("quicktime") || ct.includes("matroska") || ct.includes("webm")
         || /\.(mp4|mov|m4v|webm|mkv)$/.test(name)) return "video";
+    if (ct.includes("json") || name.endsWith(".json")) return "json";
     return null;
 }
+
+/** Whether an attachment kind has visual media to overlay a badge on / show in the modal. */
+export const hasMedia = (kind: Kind) => kind === "png" || kind === "webp" || kind === "video";
 
 const cache = new Map<string, Promise<WorkflowMeta>>();
 export function getMeta(att: any, kind: Kind): Promise<WorkflowMeta> {

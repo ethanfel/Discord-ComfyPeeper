@@ -12,7 +12,7 @@ import { Button, React, ReactDOM, useEffect, useRef, useState } from "@webpack/c
 
 import { NodeIcon } from "./icons";
 import { settings } from "./settings";
-import { copyWithToast, downloadJson, getMeta, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
+import { copyWithToast, downloadJson, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
 import { openWorkflowModal } from "./WorkflowModal";
 
 /** Find the rendered <img>/<video> in a message that corresponds to this attachment. */
@@ -63,7 +63,7 @@ function BadgePill({ att, meta, compact }: { att: any; meta: WorkflowMeta; compa
     );
 }
 
-function WorkflowControls({ att, kind }: { att: any; kind: "png" | "webp" | "video"; }) {
+function WorkflowControls({ att, kind }: { att: any; kind: Kind; }) {
     const [meta, setMeta] = useState<WorkflowMeta | null>(null);
     const [busy, setBusy] = useState(false);
     const [host, setHost] = useState<HTMLElement | null>(null);
@@ -80,7 +80,8 @@ function WorkflowControls({ att, kind }: { att: any; kind: "png" | "webp" | "vid
     }, [att.id]);
 
     const mode = settings.store.badgeMode as "overlay" | "below" | "both";
-    const wantOverlay = !!meta?.ok && (mode === "overlay" || mode === "both");
+    const canOverlay = hasMedia(kind); // json/audio have no image to attach to
+    const wantOverlay = !!meta?.ok && canOverlay && (mode === "overlay" || mode === "both");
 
     // Attempt to attach an overlay host onto the rendered image's wrapper.
     useEffect(() => {
@@ -139,7 +140,7 @@ function WorkflowControls({ att, kind }: { att: any; kind: "png" | "webp" | "vid
             : <div className="cwg-badge"><span className="cwg-none">No ComfyUI workflow</span></div>;
     }
 
-    const showBelow = mode === "below" || mode === "both" || (mode === "overlay" && overlayFailed);
+    const showBelow = !canOverlay || mode === "below" || mode === "both" || (mode === "overlay" && overlayFailed);
 
     return (
         <>

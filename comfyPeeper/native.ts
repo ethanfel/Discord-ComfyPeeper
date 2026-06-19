@@ -27,7 +27,7 @@ export interface WorkflowMeta {
     ok: boolean;
     workflow?: string;
     prompt?: string;
-    kind?: "png" | "webp" | "video" | "unknown";
+    kind?: "png" | "webp" | "video" | "json" | "unknown";
     error?: string;
 }
 
@@ -300,10 +300,22 @@ export async function fetchWorkflow(
     _: IpcMainInvokeEvent,
     url: string,
     maxBytes: number,
-    kind: "png" | "webp" | "video" | "auto"
+    kind: "png" | "webp" | "video" | "json" | "auto"
 ): Promise<WorkflowMeta> {
     try {
         if (kind === "video") return await fetchVideoMeta(url, maxBytes);
+
+        if (kind === "json") {
+            const jres = await fetch(url);
+            if (!jres.ok) return { ok: false, kind: "json", error: `HTTP ${jres.status}` };
+            const jlen = Number(jres.headers.get("content-length") ?? 0);
+            if (maxBytes && jlen && jlen > maxBytes) return { ok: false, kind: "json", error: "too large" };
+            const text = await jres.text(); // UTF-8 (preserves non-ASCII node titles)
+            if (maxBytes && text.length > maxBytes) return { ok: false, kind: "json", error: "too large" };
+            const r = scanText(text); // classifies by signature: last_node_id→workflow, class_type→prompt
+            if (!r.workflow && !r.prompt) return { ok: false, kind: "json" };
+            return { ok: true, kind: "json", workflow: r.workflow, prompt: r.prompt };
+        }
 
         const res = await fetch(url);
         if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };

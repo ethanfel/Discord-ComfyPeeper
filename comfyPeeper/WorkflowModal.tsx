@@ -78,6 +78,8 @@ function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; met
     const endpoints = parseEndpoints(settings.store.endpoints);
     const base = (att.filename || "workflow").replace(/\.[^.]+$/, "");
     const isVideo = (att.content_type || "").includes("video") || /\.(mp4|mov|m4v|webm|mkv)$/i.test(att.filename || "");
+    const isImage = (att.content_type || "").includes("image") || /\.(png|webp|jpe?g|gif)$/i.test(att.filename || "");
+    const showMedia = isImage || isVideo; // a .json attachment has nothing to preview
 
     const runCheck = async () => {
         setChecking(true);
@@ -94,11 +96,13 @@ function WorkflowModal({ rootProps, att, meta }: { rootProps: any; att: any; met
     return (
         <Modal {...rootProps} size="xl" title={<span className="cwg-modal-title" style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><NodeIcon size={18} />ComfyUI Workflow — {att.filename || "image"}</span>}>
             <div className="cwg-modal-body">
-                <div className="cwg-modal-media">
-                    {isVideo
-                        ? <video className="cwg-media" src={att.url} controls loop />
-                        : <img className="cwg-media" src={att.url} alt={att.filename} />}
-                </div>
+                {showMedia && (
+                    <div className="cwg-modal-media">
+                        {isVideo
+                            ? <video className="cwg-media" src={att.url} controls loop />
+                            : <img className="cwg-media" src={att.url} alt={att.filename} />}
+                    </div>
+                )}
                 <div className="cwg-modal-panel">
                     <div className="cwg-tabs">
                         {meta.workflow && <button className={tab === "graph" ? "active" : ""} onClick={() => setTab("graph")}>Graph</button>}
