@@ -57,7 +57,7 @@ function ParamsView({ prompt, workflow }: { prompt?: string; workflow?: string; 
     );
 }
 
-function JsonView({ meta }: { meta: WorkflowMeta; }) {
+function JsonView({ meta, base }: { meta: WorkflowMeta; base: string; }) {
     const [which, setWhich] = useState<"workflow" | "prompt">(meta.workflow ? "workflow" : "prompt");
     const text = which === "workflow" ? meta.workflow : meta.prompt;
     return (
@@ -66,6 +66,7 @@ function JsonView({ meta }: { meta: WorkflowMeta; }) {
                 {meta.workflow && <button className={which === "workflow" ? "active" : ""} onClick={() => setWhich("workflow")}>workflow (editor)</button>}
                 {meta.prompt && <button className={which === "prompt" ? "active" : ""} onClick={() => setWhich("prompt")}>prompt (API)</button>}
                 <button className="cwg-json-copy" onClick={() => copyWithToast(text ?? "", "Copied")}>Copy</button>
+                <button onClick={() => text && downloadJson(`${base}.${which}.json`, text)}>⬇ .json</button>
             </div>
             <pre className="cwg-pre cwg-selectable">{pretty(text)}</pre>
         </div>
@@ -128,7 +129,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                     <div className="cwg-tabcontent">
                         {tab === "graph" && <WorkflowGraph workflow={meta.workflow!} prompt={meta.prompt} missing={hl?.missing} />}
                         {tab === "params" && <ParamsView prompt={meta.prompt} workflow={meta.workflow} />}
-                        {tab === "json" && <JsonView meta={meta} />}
+                        {tab === "json" && <JsonView meta={meta} base={base} />}
                     </div>
                 </div>
             </div>
@@ -153,12 +154,11 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
 
             <div className="cwg-footer">
                 <Button size={Button.Sizes.SMALL} color={saved ? Button.Colors.GREEN : Button.Colors.BRAND} disabled={saved} onClick={onSave}>
-                    {saved ? "★ In library" : "★ Save to library"}
+                    {saved ? "★ Saved" : "★ Save"}
                 </Button>
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => { rootProps.onClose(); openLibraryModal(); }}>📚 Library</Button>
-                {meta.workflow && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(meta.workflow!, "Workflow JSON copied")}>Copy workflow</Button>}
-                {meta.workflow && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.workflow.json`, meta.workflow!)}>Save workflow .json</Button>}
-                {meta.prompt && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.prompt.json`, meta.prompt!)}>Save prompt .json</Button>}
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(meta.workflow ?? meta.prompt ?? "", "Copied")}>Copy</Button>
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.json`, meta.workflow ?? meta.prompt ?? "")}>Save .json</Button>
                 {meta.prompt && endpoints.length > 0 && (
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} disabled={checking} onClick={runCheck}>
                         {checking ? "Checking…" : "Check servers"}
@@ -166,7 +166,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                 )}
                 {meta.prompt && endpoints.map(ep => (
                     <Button key={ep.url} size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={() => queue(ep, meta.prompt!)}>
-                        ▶ {endpoints.length > 1 ? `Queue → ${ep.label}` : "Queue in ComfyUI"}
+                        ▶ {endpoints.length > 1 ? ep.label : "Queue"}
                     </Button>
                 ))}
             </div>
