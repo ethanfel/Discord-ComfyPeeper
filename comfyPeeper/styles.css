@@ -1,3 +1,101 @@
+/* ---- library (saved workflows, timeline view) ---- */
+.cwg-lib {
+    background: #0f1013;
+    border-radius: 10px;
+    padding: 6px 14px 10px;
+    max-height: 66vh;
+    overflow-y: auto;
+}
+.cwg-lib-empty { padding: 40px 20px; color: #9aa1ad; font-style: italic; text-align: center; line-height: 1.8; }
+
+/* the timeline rail */
+.cwg-lib-timeline {
+    position: relative;
+    margin: 4px 0 0 12px;
+    padding-left: 26px;
+    border-left: 2px solid #2c2f37;
+}
+.cwg-lib-section { position: relative; padding-bottom: 20px; }
+
+/* sticky date header with a glowing node on the rail */
+.cwg-lib-head {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 8px 2px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #eceef2;
+    background: linear-gradient(#0f1013 75%, transparent);
+}
+.cwg-lib-head::before {
+    content: "";
+    position: absolute;
+    left: -33px;
+    top: 9px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #5865f2;
+    box-shadow: 0 0 0 4px #0f1013, 0 0 10px #5865f2cc;
+}
+.cwg-lib-count {
+    font-size: 11px;
+    font-weight: 600;
+    color: #aab1be;
+    background: #ffffff14;
+    border-radius: 9px;
+    padding: 1px 8px;
+}
+
+.cwg-lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)); gap: 12px; }
+
+.cwg-lib-card {
+    background: #17191f;
+    border: 1px solid #ffffff14;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.cwg-lib-card:hover {
+    transform: translateY(-2px);
+    border-color: #5865f2aa;
+    box-shadow: 0 8px 20px #00000070;
+}
+.cwg-lib-thumb {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    background: #0a0b0d;
+    cursor: pointer;
+    overflow: hidden;
+}
+.cwg-lib-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s ease; }
+.cwg-lib-card:hover .cwg-lib-thumb img { transform: scale(1.04); }
+.cwg-lib-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #4f5662; }
+.cwg-lib-kind {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .4px;
+    padding: 2px 7px;
+    border-radius: 7px;
+    background: #000000a8;
+    color: #d3d7de;
+}
+.cwg-lib-body { padding: 8px 10px 2px; }
+.cwg-lib-title { font-size: 12px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cwg-lib-date { font-size: 11px; color: #7c838f; margin-top: 2px; }
+.cwg-lib-actions { display: flex; gap: 6px; padding: 8px 10px 10px; margin-top: auto; flex-wrap: wrap; }
+
 /* ---- badge (below message & overlay) ---- */
 .cwg-anchor { display: none; }
 

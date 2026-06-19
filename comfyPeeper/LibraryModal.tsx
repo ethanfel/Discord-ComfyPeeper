@@ -10,23 +10,6 @@ import { NodeIcon } from "./icons";
 import { getLibrary, removeEntry, SavedWf } from "./library";
 import { openWorkflowModal } from "./WorkflowModal";
 
-const S = {
-    scroll: { overflowY: "auto", maxHeight: "66vh", padding: "4px 4px 4px 2px" } as const,
-    section: { position: "relative", borderLeft: "2px solid #4b4f57", marginLeft: "6px", paddingLeft: "18px", paddingBottom: "14px" } as const,
-    head: { display: "flex", alignItems: "center", gap: "8px", margin: "0 0 10px", fontSize: "13px", fontWeight: 700, color: "#e3e6eb" } as const,
-    dot: { position: "absolute", left: "-7px", width: "12px", height: "12px", borderRadius: "50%", background: "#5865f2", border: "2px solid #1e1f22" } as const,
-    count: { color: "#8a93a0", fontWeight: 400 } as const,
-    grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "10px" } as const,
-    card: { border: "1px solid #ffffff1f", borderRadius: "8px", overflow: "hidden", background: "#00000026", display: "flex", flexDirection: "column" } as const,
-    thumb: { height: "116px", background: "#00000044", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", overflow: "hidden" } as const,
-    img: { width: "100%", height: "100%", objectFit: "cover" } as const,
-    noimg: { color: "#6f7787", display: "flex", flexDirection: "column", alignItems: "center", gap: "4px", fontSize: "11px" } as const,
-    title: { padding: "6px 8px 0", fontSize: "12px", fontWeight: 600, color: "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } as const,
-    meta: { padding: "0 8px 6px", fontSize: "11px", color: "#8a93a0" } as const,
-    actions: { display: "flex", gap: "4px", padding: "0 8px 8px", marginTop: "auto", flexWrap: "wrap" } as const,
-    empty: { padding: "28px", color: "#b9b9b9", fontStyle: "italic", textAlign: "center" } as const
-};
-
 function bucketLabel(ts: number): string {
     const d = new Date(ts);
     const now = new Date();
@@ -37,6 +20,15 @@ function bucketLabel(ts: number): string {
     if (ts >= startOfToday - 6 * day) return "Earlier this week";
     if (d.getFullYear() === now.getFullYear()) return d.toLocaleString(undefined, { month: "long" });
     return d.toLocaleString(undefined, { month: "long", year: "numeric" });
+}
+
+function relTime(ts: number): string {
+    const s = Math.max(0, (Date.now() - ts) / 1000);
+    if (s < 60) return "just now";
+    if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+    if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+    if (s < 604800) return `${Math.floor(s / 86400)}d ago`;
+    return new Date(ts).toLocaleDateString();
 }
 
 function groupByDate(items: SavedWf[]): { label: string; items: SavedWf[]; }[] {
@@ -56,12 +48,12 @@ function openSaved(e: SavedWf) {
         id: e.id,
         filename: e.title,
         content_type: e.thumb ? "image/webp" : "application/json",
-        url: e.thumb || e.sourceUrl // stored thumbnail survives deletion
+        url: e.thumb || e.sourceUrl
     };
     openWorkflowModal(
         att,
         { ok: true, kind: e.kind as any, workflow: e.workflow, prompt: e.prompt },
-        { id: e.id, messageLink: e.messageLink, sourceUrl: e.sourceUrl } // id keeps it deduped / marked saved
+        { id: e.id, messageLink: e.messageLink, sourceUrl: e.sourceUrl }
     );
 }
 
@@ -72,18 +64,21 @@ function jump(link?: string) {
 }
 
 function Card({ e, onDelete, close }: { e: SavedWf; onDelete: () => void; close: () => void; }) {
-    const open = () => { close(); openSaved(e); }; // replace, don't stack
+    const open = () => { close(); openSaved(e); };
     const post = () => { close(); jump(e.messageLink); };
     return (
-        <div style={S.card}>
-            <div style={S.thumb} onClick={open} title="Open preview">
+        <div className="cwg-lib-card">
+            <div className="cwg-lib-thumb" onClick={open} title="Open preview">
                 {e.thumb
-                    ? <img style={S.img} src={e.thumb} alt={e.title} />
-                    : <div style={S.noimg}><NodeIcon size={28} />{e.kind}</div>}
+                    ? <img src={e.thumb} alt={e.title} />
+                    : <div className="cwg-lib-noimg"><NodeIcon size={30} /></div>}
+                <span className="cwg-lib-kind">{e.kind}</span>
             </div>
-            <div style={S.title} title={e.title}>{e.title}</div>
-            <div style={S.meta}>{new Date(e.savedAt).toLocaleString()} · {e.kind}</div>
-            <div style={S.actions}>
+            <div className="cwg-lib-body">
+                <div className="cwg-lib-title" title={e.title}>{e.title}</div>
+                <div className="cwg-lib-date" title={new Date(e.savedAt).toLocaleString()}>{relTime(e.savedAt)}</div>
+            </div>
+            <div className="cwg-lib-actions">
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={open}>Open</Button>
                 {e.messageLink && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={post}>Post</Button>}
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={onDelete}>Delete</Button>
@@ -105,20 +100,22 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
                 <NodeIcon size={18} />ComfyPeeper Library {items ? `(${items.length})` : ""}
             </span>
         }>
-            {items === null
-                ? <div style={S.empty}>Loading…</div>
-                : items.length === 0
-                    ? <div style={S.empty}>No saved workflows yet.<br />Open a workflow and hit <b>★ Save to library</b>.</div>
-                    : <div className="cwg-selectable" style={S.scroll}>
-                        {groups.map(g => (
-                            <div key={g.label} style={S.section}>
-                                <div style={S.head}><span style={S.dot} />{g.label} <span style={S.count}>· {g.items.length}</span></div>
-                                <div style={S.grid}>
-                                    {g.items.map(e => <Card key={e.id} e={e} close={rootProps.onClose} onDelete={() => removeEntry(e.id).then(reload)} />)}
+            <div className="cwg-lib">
+                {items === null
+                    ? <div className="cwg-lib-empty">Loading…</div>
+                    : items.length === 0
+                        ? <div className="cwg-lib-empty">No saved workflows yet.<br />Open a workflow and hit <b>★ Save</b>.</div>
+                        : <div className="cwg-lib-timeline cwg-selectable">
+                            {groups.map(g => (
+                                <div className="cwg-lib-section" key={g.label}>
+                                    <div className="cwg-lib-head">{g.label}<span className="cwg-lib-count">{g.items.length}</span></div>
+                                    <div className="cwg-lib-grid">
+                                        {g.items.map(e => <Card key={e.id} e={e} close={rootProps.onClose} onDelete={() => removeEntry(e.id).then(reload)} />)}
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>}
+                            ))}
+                        </div>}
+            </div>
         </Modal>
     );
 }
