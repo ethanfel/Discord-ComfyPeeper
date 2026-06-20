@@ -28,6 +28,7 @@ workflow straight to a ComfyUI instance — local *or* remote.
 - 💾 **Copy / Save** the workflow or prompt as `.json`.
 - ▶️ **Queue to ComfyUI** — POST the workflow to a running instance, with **one button per configured server** (local and/or remote).
 - ✅ **Server compatibility check** — see which of your servers can actually run a workflow, and which **custom nodes are missing** — highlighted **in red on the graph**, just like ComfyUI.
+- 🎚️ **Advanced mode (opt-in)** — adds a **LoRAs** tab that lists every LoRA a workflow uses and checks them against your ComfyUI server(s) (via `/object_info`, no extra setup). Missing ones get **Civitai / CivArchive search links**, and — when **[ComfyUI-Lora-Manager](https://github.com/willmiao/ComfyUI-Lora-Manager)** is installed — a one-click **download** straight into the right models folder (with CivArchive fallback for removed models). Off by default.
 - 📎 **Upload sidecar** — Discord strips metadata from re-encoded videos. When you upload a workflow-bearing video, ComfyPeeper offers to attach the workflow(s) as `.json` sidecar(s) so they **survive for everyone** — and re-pairs them with the video on the receiving end (the whole chain, not just one).
 - 📚 **Local library** — **★ Save** any workflow to an offline library (stored in-plugin via IndexedDB) with a thumbnail and a jump-link back to the post. Keeps your workflows **even if the original message is deleted**. A **date timeline split by the channel** each workflow came from, plus a **search** that matches the filename, the channel, *and* the workflow's own metadata (model names, node types, prompts…). Open it from the **Vencord Toolbox**, the plugin settings, or the **Library** button in the previewer.
 - 🌐 **Desktop *and* browser** — runs in Vesktop/Discord-desktop (native) and on Discord in a web browser via a Tampermonkey userscript (see Install).
@@ -105,6 +106,7 @@ See **[docs/INSTALL.md → Browser](docs/INSTALL.md#browser-tampermonkey-userscr
 | setting      | description |
 |--------------|-------------|
 | **Open saved workflows library** | Button that opens the local library (also on the Vencord Toolbox and in the previewer). |
+| **advancedMode** | Adds a **LoRAs** tab to the previewer: checks a workflow's LoRAs against your server(s) and helps download missing ones (ComfyUI-Lora-Manager when installed, plus Civitai/CivArchive links). Off by default. |
 | **attachWorkflowOnUpload** | When you upload a video with an embedded workflow, attach it as a `.json` sidecar so it survives Discord's metadata stripping (default on). |
 | **attachMode** | `Ask each time` (default) or `Attach automatically (no prompt)`. |
 | **endpoints** | Comma-separated ComfyUI servers, optionally labelled: `Local = http://127.0.0.1:8188, Remote = https://gpu.example.com:8188`. A `Queue → <label>` button appears per server. |

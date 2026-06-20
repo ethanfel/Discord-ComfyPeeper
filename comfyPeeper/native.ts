@@ -460,6 +460,83 @@ export async function getMissingNodes(
     }
 }
 
+/* ----------------------- advanced mode: LoRA presence --------------------- */
+
+/** Collect every LoRA filename a server advertises in /object_info (scoped or full). */
+function collectLoraNames(info: any): string[] {
+    const out = new Set<string>();
+    // /object_info/LoraLoader returns { LoraLoader: {...} }; the full table returns every node.
+    const nodes = info && info.input ? [info] : Object.values<any>(info ?? {});
+    for (const node of nodes) {
+        const specs = { ...(node?.input?.required ?? {}), ...(node?.input?.optional ?? {}) };
+        for (const [k, def] of Object.entries<any>(specs)) {
+            if (!/lora/i.test(k)) continue;
+            const options = Array.isArray(def) ? def[0] : undefined; // ComfyUI combo: [ [..names..], {meta} ]
+            if (Array.isArray(options)) for (const o of options) if (typeof o === "string") out.add(o);
+        }
+    }
+    return [...out];
+}
+
+/** List the LoRA filenames installed on a server (always available — plain ComfyUI). */
+export async function getLoraInventory(
+    _: IpcMainInvokeEvent,
+    endpoint: string
+): Promise<{ ok: boolean; loras?: string[]; error?: string; }> {
+    try {
+        const base = endpoint.replace(/\/+$/, "");
+        let res = await fetch(`${base}/object_info/LoraLoader`); // scoped = far lighter than the full table
+        if (!res.ok) res = await fetch(`${base}/object_info`);
+        if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+        return { ok: true, loras: collectLoraNames(await res.json()) };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+/** Whether ComfyUI-Lora-Manager is installed on a server (enables one-click download). */
+export async function loraManagerProbe(
+    _: IpcMainInvokeEvent,
+    endpoint: string
+): Promise<{ present: boolean; }> {
+    const base = endpoint.replace(/\/+$/, "");
+    for (const p of ["/api/lm/loras/list?page_size=1", "/api/loras/list?page_size=1"]) { // current, then legacy prefix
+        try { if ((await fetch(base + p)).ok) return { present: true }; } catch { /* try next */ }
+    }
+    return { present: false };
+}
+
+/** Ask LoRA Manager to download a Civitai model version into the right folder (CivArchive fallback). */
+export async function loraManagerDownload(
+    _: IpcMainInvokeEvent,
+    endpoint: string,
+    versionId: string,
+    modelId?: string,
+    source?: string
+): Promise<{ ok: boolean; status: number; data: string; }> {
+    const base = endpoint.replace(/\/+$/, "");
+    const body: Record<string, unknown> = { use_default_paths: true };
+    if (versionId) body.model_version_id = Number(versionId);
+    if (modelId) body.model_id = Number(modelId);
+    if (source) body.source = source;
+    let last = { ok: false, status: -1, data: "LoRA Manager download endpoint not found" };
+    for (const p of ["/api/lm/download-model", "/api/download-model"]) {
+        try {
+            const res = await fetch(base + p, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            const data = await res.text();
+            if (res.status !== 404) return { ok: res.ok, status: res.status, data };
+            last = { ok: false, status: 404, data };
+        } catch (e) {
+            last = { ok: false, status: -1, data: String(e) };
+        }
+    }
+    return last;
+}
+
 /** Fetch raw bytes (base64) — used to make a local thumbnail that survives post deletion. */
 export async function fetchBytes(
     _: IpcMainInvokeEvent,

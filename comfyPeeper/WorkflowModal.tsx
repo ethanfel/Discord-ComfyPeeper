@@ -10,7 +10,7 @@ import { NodeIcon } from "./icons";
 import { entryId, hasEntry, SaveSource, saveToLibrary } from "./library";
 import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
-import { checkServer, copyWithToast, downloadJson, extractParams, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
+import { checkLoras, checkServer, civArchiveSearchUrl, civitaiSearchUrl, copyWithToast, downloadJson, Endpoint, extractLoras, extractParams, LoraCheck, LoraRef, Native, parseCivitaiRef, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
 import { WorkflowGraph } from "./WorkflowGraph";
 
 const pretty = (text?: string) => {
@@ -73,6 +73,91 @@ function JsonView({ meta, base }: { meta: WorkflowMeta; base: string; }) {
     );
 }
 
+/** Per-LoRA presence across the checked servers. */
+function loraStatus(name: string, checks: LoraCheck[]) {
+    const presentOn: string[] = [], missingOn: string[] = [], lmServers: Endpoint[] = [];
+    for (const c of checks) {
+        if (!c.ok) continue;
+        if (c.present.some(p => p.name === name)) presentOn.push(c.ep.label);
+        else if (c.missing.some(m => m.name === name)) {
+            missingOn.push(c.ep.label);
+            if (c.lmPresent) lmServers.push(c.ep);
+        }
+    }
+    return { presentOn, missingOn, lmServers };
+}
+
+/** Paste a Civitai/CivArchive URL → have LoRA Manager fetch it onto the server. */
+function DownloadRow({ servers }: { servers: Endpoint[]; }) {
+    const [url, setUrl] = useState("");
+    const [busy, setBusy] = useState(false);
+    const target = servers[0];
+    const go = async () => {
+        const ref = parseCivitaiRef(url);
+        if (!ref.versionId && !ref.modelId) { showToast("Paste a Civitai model/version URL or id", Toasts.Type.FAILURE); return; }
+        setBusy(true);
+        try {
+            const r = await Native.loraManagerDownload(target.url, ref.versionId ?? "", ref.modelId, ref.source);
+            if (r.ok) showToast(`Downloading on ${target.label} — re-check in a moment`, Toasts.Type.SUCCESS);
+            else showToast(`Download failed: ${(r.data || "").slice(0, 160) || `HTTP ${r.status}`}`, Toasts.Type.FAILURE);
+        } finally { setBusy(false); }
+    };
+    return (
+        <div className="cwg-lora-dl">
+            <input type="text" value={url} placeholder="paste Civitai URL or version id…" onChange={e => setUrl(e.currentTarget.value)} />
+            <button disabled={busy || !url.trim()} onClick={go}>⬇ Download to {target.label}</button>
+        </div>
+    );
+}
+
+function LorasView({ loras, endpoints }: { loras: LoraRef[]; endpoints: Endpoint[]; }) {
+    const [checks, setChecks] = useState<LoraCheck[] | null>(null);
+    const [checking, setChecking] = useState(false);
+    const runCheck = async () => {
+        setChecking(true);
+        try { setChecks(await Promise.all(endpoints.map(ep => checkLoras(ep, loras)))); }
+        finally { setChecking(false); }
+    };
+    const noServer = checks && checks.every(c => !c.ok);
+    return (
+        <div className="cwg-loras cwg-selectable">
+            <div className="cwg-loras-head">
+                <span>{loras.length} LoRA{loras.length === 1 ? "" : "s"} in this workflow</span>
+                {endpoints.length > 0 && (
+                    <button className="cwg-check" disabled={checking} onClick={runCheck}>
+                        {checking ? "Checking…" : (checks ? "Re-check" : "Check my servers")}
+                    </button>
+                )}
+            </div>
+            {noServer && <div className="cwg-loras-warn">Couldn't reach any server ({checks!.map(c => c.error).filter(Boolean).join("; ") || "unreachable"}).</div>}
+            <div className="cwg-loras-list">
+                {loras.map(l => {
+                    const st = checks && !noServer ? loraStatus(l.name, checks) : null;
+                    const missing = !!st && st.presentOn.length === 0 && st.missingOn.length > 0;
+                    return (
+                        <div className="cwg-lora" key={l.nodeId + ":" + l.name}>
+                            <div className="cwg-lora-row">
+                                <span className="cwg-lora-name" title={l.name}>{l.name}</span>
+                                {l.strength != null && <span className="cwg-lora-strength">×{l.strength}</span>}
+                                {st && (st.presentOn.length > 0
+                                    ? <span className="cwg-lora-ok">✓ {st.presentOn.join(", ")}</span>
+                                    : missing ? <span className="cwg-lora-miss">✗ missing</span> : null)}
+                            </div>
+                            {missing && (
+                                <div className="cwg-lora-help">
+                                    <a className="cwg-lora-link" href={civitaiSearchUrl(l.name)} target="_blank" rel="noreferrer">🔎 Civitai</a>
+                                    <a className="cwg-lora-link" href={civArchiveSearchUrl(l.name)} target="_blank" rel="noreferrer">🔎 CivArchive</a>
+                                    {st!.lmServers.length > 0 && <DownloadRow servers={st!.lmServers} />}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+}
+
 function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: any; meta: WorkflowMeta; source?: SaveSource; }) {
     // a file can embed several graphs (a processing chain) — let the user switch between them
     const variants = meta.variants?.length ? meta.variants : [{ label: "Workflow", workflow: meta.workflow, prompt: meta.prompt }];
@@ -80,12 +165,14 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
     const [vi, setVi] = useState(0);
     const v = variants[Math.min(vi, variants.length - 1)];
 
-    const [tab, setTab] = useState<"graph" | "params" | "json">(v.workflow ? "graph" : (v.prompt ? "params" : "json"));
+    const [tab, setTab] = useState<"graph" | "params" | "json" | "loras">(v.workflow ? "graph" : (v.prompt ? "params" : "json"));
     const [compat, setCompat] = useState<ServerCheck[] | null>(null);
     const [checking, setChecking] = useState(false);
     const [hl, setHl] = useState<{ label: string; missing: string[]; } | null>(null);
     const [saved, setSaved] = useState(false);
     const endpoints = parseEndpoints(settings.store.endpoints);
+    const advanced = settings.store.advancedMode;
+    const loras = React.useMemo(() => (advanced ? extractLoras(v.prompt, v.workflow) : []), [v, advanced]);
 
     const idFor = (i: number) => (source?.id ?? entryId(att, source)) + (multi ? `#${i}` : "");
     useEffect(() => { hasEntry(idFor(vi)).then(setSaved); }, [vi]);
@@ -138,6 +225,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                     <div className="cwg-tabs">
                         {v.workflow && <button className={tab === "graph" ? "active" : ""} onClick={() => setTab("graph")}>Graph</button>}
                         {(v.prompt || v.workflow) && <button className={tab === "params" ? "active" : ""} onClick={() => setTab("params")}>Parameters</button>}
+                        {advanced && loras.length > 0 && <button className={tab === "loras" ? "active" : ""} onClick={() => setTab("loras")}>LoRAs ({loras.length})</button>}
                         <button className={tab === "json" ? "active" : ""} onClick={() => setTab("json")}>JSON</button>
                     </div>
                     {hl && tab === "graph" && (
@@ -149,6 +237,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                     <div className="cwg-tabcontent">
                         {tab === "graph" && <WorkflowGraph workflow={v.workflow!} prompt={v.prompt} missing={hl?.missing} />}
                         {tab === "params" && <ParamsView prompt={v.prompt} workflow={v.workflow} />}
+                        {tab === "loras" && <LorasView loras={loras} endpoints={endpoints} />}
                         {tab === "json" && <JsonView meta={{ ...meta, workflow: v.workflow, prompt: v.prompt }} base={base} />}
                     </div>
                 </div>

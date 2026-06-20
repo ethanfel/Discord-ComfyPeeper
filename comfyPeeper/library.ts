@@ -6,7 +6,7 @@
 
 import * as DataStore from "@api/DataStore";
 
-import { downloadJson, logger, Native } from "./utils";
+import { downloadJson, logger, Native, playYoink } from "./utils";
 
 /** A workflow saved to the local library — survives even if the original post is deleted. */
 export interface SavedWf {
@@ -150,5 +150,6 @@ export async function saveToLibrary(
         channelName: source?.channelName
     };
     await addEntry(entry);
+    playYoink();
     return entry;
 }

@@ -18,6 +18,16 @@ export const settings = definePluginSettings({
             <Button onClick={() => openLibraryModal()}>📚 Open saved workflows library</Button>
         )
     },
+    advancedMode: {
+        type: OptionType.BOOLEAN,
+        default: false,
+        description: "Advanced mode: add a LoRAs tab to the previewer that checks a workflow's LoRAs against your ComfyUI server(s) and helps download missing ones (via ComfyUI-Lora-Manager when installed, plus Civitai/CivArchive search links)."
+    },
+    yoink: {
+        type: OptionType.BOOLEAN,
+        default: false,
+        description: "Yoink"
+    },
     attachWorkflowOnUpload: {
         type: OptionType.BOOLEAN,
         default: true,

@@ -11,6 +11,7 @@ import { showToast, Toasts } from "@webpack/common";
 
 import { settings } from "./settings";
 import { webNative } from "./webFallback";
+import { YOINK_SOUND } from "./yoinkSound";
 
 export const logger = new Logger("ComfyPeeper");
 
@@ -126,6 +127,101 @@ export async function checkServer(ep: Endpoint, promptJson: string): Promise<Ser
     return { ep, ...r };
 }
 
+/* ----------------------- advanced mode: LoRA presence --------------------- */
+
+export interface LoraRef { name: string; nodeId: string; strength?: string; }
+export interface LoraCheck { ep: Endpoint; ok: boolean; present: LoraRef[]; missing: LoraRef[]; lmPresent?: boolean; error?: string; }
+
+const MODEL_EXT = /\.(safetensors|ckpt|pt|pth|bin)$/i;
+const looksLikeModelFile = (s: string) => MODEL_EXT.test(s.trim());
+/** Normalize a lora path for comparison: forward slashes, no leading "./", lowercased. */
+const normLoraPath = (s: string) => s.trim().replace(/\\/g, "/").replace(/^\.\//, "").toLowerCase();
+const loraBaseName = (s: string) => normLoraPath(s).split("/").pop() ?? "";
+
+/** Pull LoRA references out of either graph (API prompt and/or editor workflow), de-duped. */
+export function extractLoras(promptJson?: string, workflowJson?: string): LoraRef[] {
+    const out: LoraRef[] = [];
+    const seen = new Set<string>();
+    const add = (name: any, nodeId: string, strength?: any) => {
+        if (typeof name !== "string" || !looksLikeModelFile(name)) return;
+        const key = normLoraPath(name);
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({ name: name.trim(), nodeId, strength: strength == null ? undefined : String(strength) });
+    };
+    // a value can be a lora filename, an rgthree {on,lora,strength} object, or an array of those
+    const scanValue = (v: any, nodeId: string, fallbackStrength?: any) => {
+        if (typeof v === "string") add(v, nodeId, fallbackStrength);
+        else if (Array.isArray(v)) v.forEach(x => scanValue(x, nodeId, fallbackStrength));
+        else if (v && typeof v === "object" && typeof v.lora === "string") {
+            if (v.on === false) return; // rgthree Power Lora Loader: toggled-off entry isn't used
+            add(v.lora, nodeId, v.strength ?? v.strength_model ?? fallbackStrength);
+        }
+    };
+
+    if (promptJson) {
+        try {
+            for (const [id, n] of Object.entries<any>(JSON.parse(promptJson))) {
+                if (!n || typeof n !== "object" || !n.class_type) continue;
+                const isLoraNode = /lora/i.test(String(n.class_type)); // gate so ckpt_name/vae_name aren't taken as LoRAs
+                const inputs = n.inputs ?? {};
+                const strength = inputs.strength_model ?? inputs.strength;
+                for (const [k, v] of Object.entries(inputs)) {
+                    if (/lora/i.test(k) || isLoraNode) scanValue(v, id, strength); // add() still requires a model-file name
+                }
+            }
+        } catch { /* fall through to workflow graph */ }
+    }
+    if (workflowJson) {
+        try {
+            const g = JSON.parse(workflowJson);
+            if (Array.isArray(g?.nodes)) for (const n of g.nodes) {
+                if (!/lora/i.test(String(n?.type ?? "")) && !/lora/i.test(String(n?.title ?? ""))) continue; // LoRA-loader nodes only
+                const wv = n?.widgets_values;
+                const id = String(n?.id ?? "?");
+                const strength = Array.isArray(wv) ? wv[1] : undefined;
+                if (Array.isArray(wv)) wv.forEach(v => scanValue(v, id, strength));
+                else if (wv && typeof wv === "object") for (const v of Object.values(wv)) scanValue(v, id);
+            }
+        } catch { /* none */ }
+    }
+    return out;
+}
+
+/** Check which of `loras` a server has, using its /object_info inventory; also probe LoRA Manager. */
+export async function checkLoras(ep: Endpoint, loras: LoraRef[]): Promise<LoraCheck> {
+    const inv: { ok: boolean; loras?: string[]; error?: string; } =
+        await Native.getLoraInventory(ep.url).catch(e => ({ ok: false, error: String(e) }));
+    if (!inv.ok || !inv.loras) return { ep, ok: false, present: [], missing: loras, error: inv.error || "no inventory" };
+    const full = new Set(inv.loras.map(normLoraPath));
+    const base = new Set(inv.loras.map(loraBaseName));
+    const present: LoraRef[] = [], missing: LoraRef[] = [];
+    for (const l of loras) {
+        (full.has(normLoraPath(l.name)) || base.has(loraBaseName(l.name)) ? present : missing).push(l);
+    }
+    const lm = await Native.loraManagerProbe(ep.url).catch(() => ({ present: false }));
+    return { ep, ok: true, present, missing, lmPresent: !!lm.present };
+}
+
+const noExt = (name: string) => loraBaseName(name).replace(MODEL_EXT, "");
+export const civitaiSearchUrl = (name: string) => `https://civitai.com/search/models?query=${encodeURIComponent(noExt(name))}`;
+export const civArchiveSearchUrl = (name: string) => `https://civitaiarchive.com/search?q=${encodeURIComponent(noExt(name))}`;
+
+/** Pull a Civitai/CivArchive model + version id out of a pasted URL or bare id. */
+export function parseCivitaiRef(input: string): { versionId?: string; modelId?: string; source?: string; } {
+    const s = input.trim();
+    if (/^\d+$/.test(s)) return { versionId: s };
+    const source = /civitaiarchive\.com|civarchive\.com/i.test(s) ? "civarchive" : undefined;
+    let versionId: string | undefined, modelId: string | undefined;
+    try {
+        const u = new URL(s);
+        versionId = u.searchParams.get("modelVersionId") || undefined;
+        versionId ??= u.pathname.match(/\/api\/download\/models\/(\d+)/)?.[1];
+        modelId = u.pathname.match(/\/models\/(\d+)/)?.[1];
+    } catch { /* not a URL */ }
+    return { versionId, modelId, source };
+}
+
 export function downloadJson(name: string, text: string) {
     try {
         const blob = new Blob([text], { type: "application/json" });
@@ -138,6 +234,18 @@ export function downloadJson(name: string, text: string) {
     } catch (e) {
         logger.error("download failed", e);
         showToast("Could not save file", Toasts.Type.FAILURE);
+    }
+}
+
+/** Play the inlined "yoink" clip on save. Gated by the (unexplained) setting. */
+export function playYoink() {
+    if (!settings.store.yoink) return;
+    try {
+        const audio = new Audio(YOINK_SOUND);
+        audio.volume = 0.6;
+        audio.play().catch(e => logger.warn("yoink failed", e)); // a user gesture (Save) precedes this, so autoplay is allowed
+    } catch (e) {
+        logger.warn("yoink failed", e);
     }
 }
 
