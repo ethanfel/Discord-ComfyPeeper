@@ -456,6 +456,10 @@
     padding: 4px 9px;
 }
 .cwg-lora-link:hover { background: #5865f222; }
+.cwg-lora-link-red { color: #ff6b6b; border-color: #ff6b6b66; }
+.cwg-lora-link-red:hover { background: #ff6b6b1f; }
+.cwg-lora-link-hf { color: #ffd21e; border-color: #ffd21e66; }
+.cwg-lora-link-hf:hover { background: #ffd21e1f; }
 .cwg-lora-dl { display: flex; align-items: center; gap: 6px; flex: 1 1 240px; min-width: 0; }
 .cwg-lora-dl input {
     flex: 1 1 auto;

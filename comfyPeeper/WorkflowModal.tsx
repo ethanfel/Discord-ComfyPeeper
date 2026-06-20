@@ -10,7 +10,7 @@ import { NodeIcon } from "./icons";
 import { entryId, hasEntry, SaveSource, saveToLibrary } from "./library";
 import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
-import { checkLoras, checkServer, civArchiveSearchUrl, civitaiSearchUrl, copyWithToast, downloadJson, Endpoint, extractLoras, extractParams, LoraCheck, LoraRef, Native, parseCivitaiRef, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
+import { checkLoras, checkServer, civArchiveSearchUrl, civitaiRedSearchUrl, civitaiSearchUrl, copyWithToast, downloadJson, Endpoint, extractLoras, extractParams, huggingFaceSearchUrl, LoraCheck, LoraRef, Native, parseCivitaiRef, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
 import { WorkflowGraph } from "./WorkflowGraph";
 
 const pretty = (text?: string) => {
@@ -75,23 +75,19 @@ function JsonView({ meta, base }: { meta: WorkflowMeta; base: string; }) {
 
 /** Per-LoRA presence across the checked servers. */
 function loraStatus(name: string, checks: LoraCheck[]) {
-    const presentOn: string[] = [], missingOn: string[] = [], lmServers: Endpoint[] = [];
+    const presentOn: string[] = [], missingOn: string[] = [];
     for (const c of checks) {
         if (!c.ok) continue;
         if (c.present.some(p => p.name === name)) presentOn.push(c.ep.label);
-        else if (c.missing.some(m => m.name === name)) {
-            missingOn.push(c.ep.label);
-            if (c.lmPresent) lmServers.push(c.ep);
-        }
+        else if (c.missing.some(m => m.name === name)) missingOn.push(c.ep.label);
     }
-    return { presentOn, missingOn, lmServers };
+    return { presentOn, missingOn };
 }
 
 /** Paste a Civitai/CivArchive URL → have LoRA Manager fetch it onto the server. */
-function DownloadRow({ servers }: { servers: Endpoint[]; }) {
+function DownloadRow({ target }: { target: Endpoint; }) {
     const [url, setUrl] = useState("");
     const [busy, setBusy] = useState(false);
-    const target = servers[0];
     const go = async () => {
         const ref = parseCivitaiRef(url);
         if (!ref.versionId && !ref.modelId) { showToast("Paste a Civitai model/version URL or id", Toasts.Type.FAILURE); return; }
@@ -119,6 +115,11 @@ function LorasView({ loras, endpoints }: { loras: LoraRef[]; endpoints: Endpoint
         finally { setChecking(false); }
     };
     const noServer = checks && checks.every(c => !c.ok);
+    // where "Download" sends to: an explicit standalone LoRA Manager, else the first ComfyUI server that has it built in
+    const lmUrl = settings.store.loraManagerUrl?.trim();
+    const lmTarget: Endpoint | null = lmUrl && /^https?:\/\//i.test(lmUrl)
+        ? { label: "LoRA Manager", url: lmUrl }
+        : (checks?.find(c => c.ok && c.lmPresent)?.ep ?? null);
     return (
         <div className="cwg-loras cwg-selectable">
             <div className="cwg-loras-head">
@@ -146,8 +147,10 @@ function LorasView({ loras, endpoints }: { loras: LoraRef[]; endpoints: Endpoint
                             {missing && (
                                 <div className="cwg-lora-help">
                                     <a className="cwg-lora-link" href={civitaiSearchUrl(l.name)} target="_blank" rel="noreferrer">🔎 Civitai</a>
+                                    <a className="cwg-lora-link cwg-lora-link-red" href={civitaiRedSearchUrl(l.name)} target="_blank" rel="noreferrer">🔎 Civitai.red</a>
                                     <a className="cwg-lora-link" href={civArchiveSearchUrl(l.name)} target="_blank" rel="noreferrer">🔎 CivArchive</a>
-                                    {st!.lmServers.length > 0 && <DownloadRow servers={st!.lmServers} />}
+                                    <a className="cwg-lora-link cwg-lora-link-hf" href={huggingFaceSearchUrl(l.name)} target="_blank" rel="noreferrer">🤗 Hugging Face</a>
+                                    {lmTarget && <DownloadRow target={lmTarget} />}
                                 </div>
                             )}
                         </div>

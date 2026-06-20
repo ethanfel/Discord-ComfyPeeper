@@ -28,6 +28,14 @@ export const settings = definePluginSettings({
         default: false,
         description: "Yoink"
     },
+    loraManagerUrl: {
+        type: OptionType.STRING,
+        default: "",
+        description:
+            "Standalone ComfyUI-Lora-Manager address, e.g. http://192.168.1.50:8188. " +
+            "Only set this if LoRA Manager runs separately from ComfyUI — otherwise leave " +
+            "blank and it's auto-detected on each ComfyUI server. (Advanced mode only.)"
+    },
     attachWorkflowOnUpload: {
         type: OptionType.BOOLEAN,
         default: true,

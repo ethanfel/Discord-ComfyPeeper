@@ -199,13 +199,18 @@ export async function checkLoras(ep: Endpoint, loras: LoraRef[]): Promise<LoraCh
     for (const l of loras) {
         (full.has(normLoraPath(l.name)) || base.has(loraBaseName(l.name)) ? present : missing).push(l);
     }
-    const lm = await Native.loraManagerProbe(ep.url).catch(() => ({ present: false }));
+    // when a standalone LoRA Manager is configured, downloads target it directly — skip the per-server probe
+    const lm = settings.store.loraManagerUrl?.trim()
+        ? { present: false }
+        : await Native.loraManagerProbe(ep.url).catch(() => ({ present: false }));
     return { ep, ok: true, present, missing, lmPresent: !!lm.present };
 }
 
 const noExt = (name: string) => loraBaseName(name).replace(MODEL_EXT, "");
 export const civitaiSearchUrl = (name: string) => `https://civitai.com/search/models?query=${encodeURIComponent(noExt(name))}`;
+export const civitaiRedSearchUrl = (name: string) => `https://civitai.red/search/models?query=${encodeURIComponent(noExt(name))}`;
 export const civArchiveSearchUrl = (name: string) => `https://civitaiarchive.com/search?q=${encodeURIComponent(noExt(name))}`;
+export const huggingFaceSearchUrl = (name: string) => `https://huggingface.co/models?search=${encodeURIComponent(noExt(name))}`;
 
 /** Pull a Civitai/CivArchive model + version id out of a pasted URL or bare id. */
 export function parseCivitaiRef(input: string): { versionId?: string; modelId?: string; source?: string; } {
