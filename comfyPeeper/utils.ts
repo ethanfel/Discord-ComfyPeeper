@@ -237,13 +237,49 @@ export function downloadJson(name: string, text: string) {
     }
 }
 
-/** Play the inlined "yoink" clip on save. Gated by the (unexplained) setting. */
+/*
+ * Play the inlined "yoink" clip on save. Gated by the (unexplained) setting.
+ * Uses Web Audio (decode an in-memory buffer → output) rather than an <audio> element:
+ * Discord's CSP `media-src` blocks a data: URL in a media element in the browser, but
+ * Web Audio isn't subject to it, so this works under Tampermonkey *and* on desktop.
+ */
+let yoinkCtx: AudioContext | null = null;
+let yoinkBuf: AudioBuffer | null = null;
+let yoinkDecoding: Promise<AudioBuffer | null> | null = null;
+
+function getYoinkBuffer(ctx: AudioContext): Promise<AudioBuffer | null> {
+    if (yoinkBuf) return Promise.resolve(yoinkBuf);
+    if (!yoinkDecoding) {
+        const bin = atob(YOINK_SOUND.slice(YOINK_SOUND.indexOf(",") + 1));
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        yoinkDecoding = ctx.decodeAudioData(bytes.buffer).then(
+            buf => (yoinkBuf = buf),
+            e => { logger.warn("yoink decode failed", e); return null; }
+        );
+    }
+    return yoinkDecoding;
+}
+
 export function playYoink() {
     if (!settings.store.yoink) return;
     try {
-        const audio = new Audio(YOINK_SOUND);
-        audio.volume = 0.6;
-        audio.play().catch(e => logger.warn("yoink failed", e)); // a user gesture (Save) precedes this, so autoplay is allowed
+        const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
+        if (!Ctx) return;
+        if (!yoinkCtx) yoinkCtx = new Ctx();
+        const ctx = yoinkCtx!;
+        const start = () => getYoinkBuffer(ctx).then(buf => {
+            if (!buf) return;
+            const src = ctx.createBufferSource();
+            const gain = ctx.createGain();
+            gain.gain.value = 0.6;
+            src.buffer = buf;
+            src.connect(gain).connect(ctx.destination);
+            src.start();
+        });
+        // a user gesture (the Save click) precedes this; resume the context if it's suspended
+        if (ctx.state === "suspended") ctx.resume().then(start, start);
+        else start();
     } catch (e) {
         logger.warn("yoink failed", e);
     }
