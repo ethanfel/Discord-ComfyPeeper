@@ -83,6 +83,17 @@ There's a helper for Vesktop/Vencord that builds and deploys in one step:
 VENCORD_DIR=~/Vencord ./scripts/install-vesktop.sh
 ```
 
+**Browser (Discord on the web):** ComfyPeeper also runs as a Vencord **Tampermonkey userscript**.
+A renderer fallback handles all parsing without the native module, and the userscript's
+`GM_xmlhttpRequest` bypasses CORS + mixed-content — so detection/preview/library *and* ComfyUI
+queueing (even a remote `http://` instance) work in the browser. Tampermonkey only.
+
+```bash
+VENCORD_DIR=~/Vencord ./scripts/build-userscript.sh   # → dist/Vencord.user.js, import in Tampermonkey
+```
+
+See **[docs/INSTALL.md → Browser](docs/INSTALL.md#browser-tampermonkey-userscript)** for details.
+
 ## ⚙️ Settings
 
 | setting      | description |

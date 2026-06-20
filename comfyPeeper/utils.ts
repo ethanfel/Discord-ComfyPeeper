@@ -10,9 +10,17 @@ import { PluginNative } from "@utils/types";
 import { showToast, Toasts } from "@webpack/common";
 
 import { settings } from "./settings";
+import { webNative } from "./webFallback";
 
-export const Native = VencordNative.pluginHelpers.ComfyPeeper as PluginNative<typeof import("./native")>;
 export const logger = new Logger("ComfyPeeper");
+
+// Desktop (Vesktop/Discord desktop) exposes the native main-process module; in a browser
+// (Vencord browser extension / Tampermonkey userscript) it's absent, so fall back to the
+// renderer implementation (webFallback.ts). Optional chaining avoids a load-time crash on web.
+const nativeImpl = (typeof VencordNative !== "undefined"
+    ? (VencordNative as any)?.pluginHelpers?.ComfyPeeper
+    : undefined) as PluginNative<typeof import("./native")> | undefined;
+export const Native = (nativeImpl ?? webNative) as PluginNative<typeof import("./native")>;
 
 export { copyWithToast };
 

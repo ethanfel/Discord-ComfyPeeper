@@ -89,6 +89,40 @@ Fully quit Vesktop (tray → Quit) and reopen → enable **ComfyPeeper**.
 
 ---
 
+## Browser (Tampermonkey userscript)
+
+You can also run ComfyPeeper on **Discord in a web browser** via Vencord's userscript build.
+
+There's no Electron main process in a browser, so ComfyPeeper's native module is unavailable —
+but it ships a renderer fallback (`webFallback.ts`) that does the same metadata parsing with
+plain `fetch`. Discord's CDN allows cross-origin reads, so **detection, preview, library, and the
+upload sidecar all work**. And because Vencord's userscript rewrites `fetch` →
+`GM_xmlhttpRequest` (which bypasses both CORS *and* mixed-content), **queueing to ComfyUI also
+works — including a remote `http://` instance** — with no `--enable-cors-header` needed.
+
+> **Tampermonkey only.** Violentmonkey / Greasemonkey-on-Firefox can't override `window` on
+> CSP-protected sites like Discord, so they won't work. Use Tampermonkey (any Chromium browser,
+> or Firefox + Tampermonkey).
+
+### Steps
+
+1. Install the **Tampermonkey** extension in your browser.
+2. Build the userscript (clones a source Vencord to `$VENCORD_DIR` if missing):
+
+   ```bash
+   VENCORD_DIR=~/Vencord ./scripts/build-userscript.sh
+   ```
+
+   This produces `~/Vencord/dist/Vencord.user.js` with ComfyPeeper baked in.
+3. Install it in Tampermonkey: dashboard → **Utilities → Import from file** (or open the
+   `.user.js` file in the browser and confirm the install prompt).
+4. Open **discord.com**, click the **Vencord cog**, enable **ComfyPeeper**, and set your ComfyUI
+   endpoints.
+
+To update later, re-run `build-userscript.sh` and re-import the file in Tampermonkey.
+
+---
+
 ## Updating
 
 After pulling new changes to this repo (or to Vencord):
