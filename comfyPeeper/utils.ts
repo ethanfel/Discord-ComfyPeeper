@@ -16,10 +16,13 @@ export const logger = new Logger("ComfyPeeper");
 
 export { copyWithToast };
 
+export interface Variant { label?: string; workflow?: string; prompt?: string; }
+
 export interface WorkflowMeta {
     ok: boolean;
     workflow?: string;
     prompt?: string;
+    variants?: Variant[]; // present when a file carries more than one embedded graph
     kind?: "png" | "webp" | "video" | "json" | "text" | "unknown";
     error?: string;
 }
@@ -163,9 +166,12 @@ function paramsFromWorkflow(workflowJson: string): ParamNode[] {
 
 /* ---- detect a workflow pasted as raw JSON / a code block in message text ---- */
 
+const MAX_JSON = 4_000_000; // cap balanced-scan length so binary (video) data can't cause O(n²) walks
+
 function balancedObj(text: string, start: number): string | null {
     let depth = 0, inStr = false, esc = false;
-    for (let i = start; i < text.length; i++) {
+    const end = Math.min(text.length, start + MAX_JSON);
+    for (let i = start; i < end; i++) {
         const c = text[i];
         if (inStr) {
             if (esc) esc = false; else if (c === "\\") esc = true; else if (c === "\"") inStr = false;
@@ -176,11 +182,9 @@ function balancedObj(text: string, start: number): string | null {
     return null;
 }
 
-/** Outermost balanced JSON object containing `marker` that actually parses. */
-function enclosingJson(text: string, marker: string): string | undefined {
-    const idx = text.indexOf(marker);
-    if (idx === -1) return undefined;
-    for (let s = text.indexOf("{"); s !== -1 && s <= idx; s = text.indexOf("{", s + 1)) {
+/** Outermost balanced JSON object that contains char `idx` and parses. */
+function enclosingAtIndex(text: string, idx: number): string | undefined {
+    for (let s = text.indexOf("{", Math.max(0, idx - MAX_JSON)); s !== -1 && s <= idx; s = text.indexOf("{", s + 1)) {
         const obj = balancedObj(text, s);
         if (obj && s + obj.length > idx) {
             try { JSON.parse(obj); return obj; } catch { /* keep scanning */ }
@@ -189,14 +193,80 @@ function enclosingJson(text: string, marker: string): string | undefined {
     return undefined;
 }
 
-/** Find a ComfyUI graph pasted in a message body (raw or in a ``` code block). */
+/** Outermost balanced JSON object containing `marker` that actually parses. */
+function enclosingJson(text: string, marker: string): string | undefined {
+    const idx = text.indexOf(marker);
+    return idx === -1 ? undefined : enclosingAtIndex(text, idx);
+}
+
+/** One JSON object → {workflow, prompt}, unwrapping the combined {prompt,workflow} wrapper (VHS video metadata). */
+function classifyGraph(jsonText: string): { workflow?: string; prompt?: string; } {
+    try {
+        const o = JSON.parse(jsonText);
+        if (!o || typeof o !== "object" || Array.isArray(o)) return {};
+        const norm = (v: any) => v == null ? undefined : (typeof v === "string" ? v : JSON.stringify(v));
+        if (!Array.isArray(o.nodes) && (o.workflow != null || o.prompt != null)) {
+            const r = { workflow: norm(o.workflow), prompt: norm(o.prompt) };
+            if (r.workflow || r.prompt) return r;
+        }
+        if (Array.isArray(o.nodes)) return { workflow: jsonText };
+        if (Object.values(o).some((v: any) => v && typeof v === "object" && v.class_type)) return { prompt: jsonText };
+    } catch { /* not json */ }
+    return {};
+}
+
+function nodeCount(v: Variant): number {
+    try {
+        if (v.workflow) { const w = JSON.parse(v.workflow); if (Array.isArray(w.nodes)) return w.nodes.length; }
+        if (v.prompt) return Object.keys(JSON.parse(v.prompt)).length;
+    } catch { /* */ }
+    return 0;
+}
+
+/** Extract EVERY embedded graph from raw text, ordered (standard tags first, then combined lineage) + labelled. */
+export function collectGraphs(text: string): Variant[] {
+    const candidates = new Set<string>();
+    for (const marker of ["\"workflow\"", "\"last_node_id\"", "\"last_link_id\"", "\"class_type\""]) {
+        let idx = text.indexOf(marker);
+        for (let g = 0; idx !== -1 && g < 80; g++) {
+            const obj = enclosingAtIndex(text, idx);
+            if (obj) candidates.add(obj);
+            idx = text.indexOf(marker, idx + marker.length);
+        }
+    }
+    const combined: Variant[] = [];
+    const wfPool: string[] = [];
+    const prPool: string[] = [];
+    for (const cand of candidates) {
+        const c = classifyGraph(cand);
+        if (c.workflow && c.prompt) combined.push(c);
+        else if (c.workflow) wfPool.push(c.workflow);
+        else if (c.prompt) prPool.push(c.prompt);
+    }
+    const bare: Variant[] = [];
+    for (let i = 0; i < Math.max(wfPool.length, prPool.length); i++) bare.push({ workflow: wfPool[i], prompt: prPool[i] });
+
+    const seen = new Set<string>();
+    const out: Variant[] = [];
+    for (const v of [...bare, ...combined]) { // bare = current/standard tags first
+        if (!v.workflow && !v.prompt) continue;
+        const key = (v.workflow?.length ?? 0) + ":" + (v.prompt?.length ?? 0) + ":" + (v.workflow ?? v.prompt ?? "").slice(0, 160);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(v);
+    }
+    out.forEach((v, i) => { v.label = `Workflow ${i + 1} · ${nodeCount(v)} nodes`; });
+    return out;
+}
+
+/** Find ComfyUI graph(s) in a message body or file text (raw or in a ``` code block). */
 export function findGraphInText(content?: string): WorkflowMeta | null {
     if (!content) return null;
     if (!content.includes("class_type") && !content.includes("last_node_id") && !content.includes("last_link_id")) return null;
-    const prompt = enclosingJson(content, "\"class_type\"");
-    const workflow = enclosingJson(content, "\"last_node_id\"") ?? enclosingJson(content, "\"last_link_id\"");
-    if (!workflow && !prompt) return null;
-    return { ok: true, kind: "text", workflow, prompt };
+    const variants = collectGraphs(content);
+    if (!variants.length) return null;
+    const p = variants[0]; // primary = the standard/most-recent workflow (what the user added)
+    return { ok: true, kind: "text", workflow: p.workflow, prompt: p.prompt, variants: variants.length > 1 ? variants : undefined };
 }
 
 /** Per-node parameter list: prefer the labelled API graph, else the editor graph's widget values. */

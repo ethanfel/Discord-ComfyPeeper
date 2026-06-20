@@ -214,6 +214,31 @@
 }
 .cwg-json-head .cwg-json-copy { margin-left: auto; }
 
+/* multi-workflow variant selector */
+.cwg-variants {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #ffffff14;
+}
+.cwg-variants button {
+    padding: 4px 10px;
+    border-radius: 7px;
+    border: 1px solid #ffffff1f;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    background: #00000026;
+    color: #c7ccd4;
+}
+.cwg-variants button.active {
+    background: #43b581;
+    border-color: #43b581;
+    color: #06281a;
+}
+
 .cwg-tabcontent {
     flex: 1 1 auto;
     min-height: 0;

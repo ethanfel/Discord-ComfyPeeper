@@ -74,18 +74,31 @@ function JsonView({ meta, base }: { meta: WorkflowMeta; base: string; }) {
 }
 
 function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: any; meta: WorkflowMeta; source?: SaveSource; }) {
-    const [tab, setTab] = useState<"graph" | "params" | "json">(meta.workflow ? "graph" : (meta.prompt ? "params" : "json"));
+    // a file can embed several graphs (a processing chain) — let the user switch between them
+    const variants = meta.variants?.length ? meta.variants : [{ label: "Workflow", workflow: meta.workflow, prompt: meta.prompt }];
+    const multi = variants.length > 1;
+    const [vi, setVi] = useState(0);
+    const v = variants[Math.min(vi, variants.length - 1)];
+
+    const [tab, setTab] = useState<"graph" | "params" | "json">(v.workflow ? "graph" : (v.prompt ? "params" : "json"));
     const [compat, setCompat] = useState<ServerCheck[] | null>(null);
     const [checking, setChecking] = useState(false);
     const [hl, setHl] = useState<{ label: string; missing: string[]; } | null>(null);
     const [saved, setSaved] = useState(false);
     const endpoints = parseEndpoints(settings.store.endpoints);
 
-    useEffect(() => { hasEntry(entryId(att, source)).then(setSaved); }, []);
+    const idFor = (i: number) => (source?.id ?? entryId(att, source)) + (multi ? `#${i}` : "");
+    useEffect(() => { hasEntry(idFor(vi)).then(setSaved); }, [vi]);
     const onSave = async () => {
-        await saveToLibrary(att, meta, source);
+        const title = multi ? `${att.filename || "workflow"} — ${v.label}` : (att.filename || "workflow");
+        await saveToLibrary({ ...att, filename: title }, { workflow: v.workflow, prompt: v.prompt, kind: meta.kind }, { ...source, id: idFor(vi) });
         setSaved(true);
         showToast("Saved to library ★", Toasts.Type.SUCCESS);
+    };
+    const switchVariant = (i: number) => {
+        setVi(i); setCompat(null); setHl(null);
+        const nv = variants[i];
+        setTab(nv.workflow ? "graph" : (nv.prompt ? "params" : "json"));
     };
     const base = (att.filename || "workflow").replace(/\.[^.]+$/, "");
     const isVideo = (att.content_type || "").includes("video") || /\.(mp4|mov|m4v|webm|mkv)$/i.test(att.filename || "");
@@ -94,7 +107,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
 
     const runCheck = async () => {
         setChecking(true);
-        try { setCompat(await Promise.all(endpoints.map(ep => checkServer(ep, meta.prompt!)))); }
+        try { setCompat(await Promise.all(endpoints.map(ep => checkServer(ep, v.prompt!)))); }
         finally { setChecking(false); }
     };
 
@@ -115,9 +128,16 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                     </div>
                 )}
                 <div className="cwg-modal-panel">
+                    {multi && (
+                        <div className="cwg-variants" title="This file embeds more than one workflow (e.g. a generation + post-processing chain)">
+                            {variants.map((vv, i) => (
+                                <button key={i} className={i === vi ? "active" : ""} onClick={() => switchVariant(i)}>{vv.label}</button>
+                            ))}
+                        </div>
+                    )}
                     <div className="cwg-tabs">
-                        {meta.workflow && <button className={tab === "graph" ? "active" : ""} onClick={() => setTab("graph")}>Graph</button>}
-                        {(meta.prompt || meta.workflow) && <button className={tab === "params" ? "active" : ""} onClick={() => setTab("params")}>Parameters</button>}
+                        {v.workflow && <button className={tab === "graph" ? "active" : ""} onClick={() => setTab("graph")}>Graph</button>}
+                        {(v.prompt || v.workflow) && <button className={tab === "params" ? "active" : ""} onClick={() => setTab("params")}>Parameters</button>}
                         <button className={tab === "json" ? "active" : ""} onClick={() => setTab("json")}>JSON</button>
                     </div>
                     {hl && tab === "graph" && (
@@ -127,9 +147,9 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                         </div>
                     )}
                     <div className="cwg-tabcontent">
-                        {tab === "graph" && <WorkflowGraph workflow={meta.workflow!} prompt={meta.prompt} missing={hl?.missing} />}
-                        {tab === "params" && <ParamsView prompt={meta.prompt} workflow={meta.workflow} />}
-                        {tab === "json" && <JsonView meta={meta} base={base} />}
+                        {tab === "graph" && <WorkflowGraph workflow={v.workflow!} prompt={v.prompt} missing={hl?.missing} />}
+                        {tab === "params" && <ParamsView prompt={v.prompt} workflow={v.workflow} />}
+                        {tab === "json" && <JsonView meta={{ ...meta, workflow: v.workflow, prompt: v.prompt }} base={base} />}
                     </div>
                 </div>
             </div>
@@ -138,7 +158,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                 <div className="cwg-selectable" style={{ display: "flex", flexDirection: "column", gap: "2px", padding: "6px 2px", fontSize: "12px", fontFamily: "monospace" }}>
                     {compat.map(c => {
                         const { color, text } = compatLine(c);
-                        const canHighlight = c.ok && (c.missing?.length ?? 0) > 0 && !!meta.workflow;
+                        const canHighlight = c.ok && (c.missing?.length ?? 0) > 0 && !!v.workflow;
                         return (
                             <div
                                 key={c.ep.url}
@@ -157,15 +177,15 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                     {saved ? "★ Saved" : "★ Save"}
                 </Button>
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => { rootProps.onClose(); openLibraryModal(); }}>📚 Library</Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(meta.workflow ?? meta.prompt ?? "", "Copied")}>Copy</Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.json`, meta.workflow ?? meta.prompt ?? "")}>Save .json</Button>
-                {meta.prompt && endpoints.length > 0 && (
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(v.workflow ?? v.prompt ?? "", "Copied")}>Copy</Button>
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.json`, v.workflow ?? v.prompt ?? "")}>Save .json</Button>
+                {v.prompt && endpoints.length > 0 && (
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} disabled={checking} onClick={runCheck}>
                         {checking ? "Checking…" : "Check servers"}
                     </Button>
                 )}
-                {meta.prompt && endpoints.map(ep => (
-                    <Button key={ep.url} size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={() => queue(ep, meta.prompt!)}>
+                {v.prompt && endpoints.map(ep => (
+                    <Button key={ep.url} size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={() => queue(ep, v.prompt!)}>
                         ▶ {endpoints.length > 1 ? ep.label : "Queue"}
                     </Button>
                 ))}

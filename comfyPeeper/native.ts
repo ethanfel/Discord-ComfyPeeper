@@ -22,11 +22,15 @@ import type { IpcMainInvokeEvent } from "electron";
 import { inflateSync } from "zlib";
 
 const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const MAX_JSON = 4_000_000; // cap balanced-scan length so binary data can't cause O(n²) walks
+
+export interface Variant { label?: string; workflow?: string; prompt?: string; }
 
 export interface WorkflowMeta {
     ok: boolean;
     workflow?: string;
     prompt?: string;
+    variants?: Variant[]; // present when a file carries more than one embedded graph
     kind?: "png" | "webp" | "video" | "json" | "unknown";
     error?: string;
 }
@@ -38,7 +42,8 @@ function balancedObject(text: string, start: number): string | null {
     let depth = 0;
     let inStr = false;
     let esc = false;
-    for (let i = start; i < text.length; i++) {
+    const end = Math.min(text.length, start + MAX_JSON);
+    for (let i = start; i < end; i++) {
         const c = text[i];
         if (inStr) {
             if (esc) esc = false;
@@ -56,11 +61,9 @@ function balancedObject(text: string, start: number): string | null {
     return null;
 }
 
-/** Find the OUTERMOST balanced JSON object that contains `marker` and parses. */
-function extractEnclosingJson(text: string, marker: string): string | undefined {
-    const markerIdx = text.indexOf(marker);
-    if (markerIdx === -1) return undefined;
-    for (let s = text.indexOf("{"); s !== -1 && s <= markerIdx; s = text.indexOf("{", s + 1)) {
+/** OUTERMOST balanced JSON object that contains the char at `markerIdx` and parses. */
+function enclosingAtIndex(text: string, markerIdx: number): string | undefined {
+    for (let s = text.indexOf("{", Math.max(0, markerIdx - MAX_JSON)); s !== -1 && s <= markerIdx; s = text.indexOf("{", s + 1)) {
         const obj = balancedObject(text, s);
         if (obj && s + obj.length > markerIdx) {
             try { JSON.parse(obj); return obj; } catch { /* not this one */ }
@@ -69,14 +72,93 @@ function extractEnclosingJson(text: string, marker: string): string | undefined 
     return undefined;
 }
 
-/** Last-resort: recover graphs from raw text by their signature keys. */
+/** Find the OUTERMOST balanced JSON object that contains `marker` and parses. */
+function extractEnclosingJson(text: string, marker: string): string | undefined {
+    const i = text.indexOf(marker);
+    return i === -1 ? undefined : enclosingAtIndex(text, i);
+}
+
+/** Turn one JSON object into {workflow, prompt}, unwrapping the combined {prompt,workflow} wrapper. */
+function classifyGraph(jsonText: string): { workflow?: string; prompt?: string; } {
+    try {
+        const o = JSON.parse(jsonText);
+        if (!o || typeof o !== "object" || Array.isArray(o)) return {};
+        const norm = (v: any) => v == null ? undefined : (typeof v === "string" ? v : JSON.stringify(v));
+        // combined wrapper, e.g. VHS video metadata: { "prompt": "<api json>", "workflow": { ...editor... } }
+        if (!Array.isArray(o.nodes) && (o.workflow != null || o.prompt != null)) {
+            const r = { workflow: norm(o.workflow), prompt: norm(o.prompt) };
+            if (r.workflow || r.prompt) return r;
+        }
+        if (Array.isArray(o.nodes)) return { workflow: jsonText }; // bare editor graph
+        if (Object.values(o).some((v: any) => v && typeof v === "object" && v.class_type)) return { prompt: jsonText }; // bare API graph
+    } catch { /* not json */ }
+    return {};
+}
+
+/** Recover graphs from raw text (handles bare graphs AND the combined {prompt,workflow} wrapper). */
 function scanText(text: string): { workflow?: string; prompt?: string; } {
-    // prompt (API) graph: only API graphs contain "class_type"
-    const prompt = extractEnclosingJson(text, "\"class_type\"");
-    // workflow (editor) graph: litegraph top-level key
-    const workflow = extractEnclosingJson(text, "\"last_node_id\"")
-        ?? extractEnclosingJson(text, "\"last_link_id\"");
+    let workflow: string | undefined;
+    let prompt: string | undefined;
+    const a = extractEnclosingJson(text, "\"class_type\"");
+    if (a) { const c = classifyGraph(a); workflow = c.workflow; prompt = c.prompt; }
+    if (!workflow) {
+        const b = extractEnclosingJson(text, "\"last_node_id\"") ?? extractEnclosingJson(text, "\"last_link_id\"");
+        if (b) { const c = classifyGraph(b); workflow = c.workflow ?? workflow; prompt = prompt ?? c.prompt; }
+    }
     return { workflow, prompt };
+}
+
+function nodeCount(v: Variant): number {
+    try {
+        if (v.workflow) { const w = JSON.parse(v.workflow); if (Array.isArray(w.nodes)) return w.nodes.length; }
+        if (v.prompt) return Object.keys(JSON.parse(v.prompt)).length;
+    } catch { /* */ }
+    return 0;
+}
+
+/** Extract EVERY embedded graph (a video can carry a whole processing chain), ordered & labelled. */
+function collectGraphs(text: string): Variant[] {
+    const candidates = new Set<string>();
+    for (const marker of ["\"workflow\"", "\"last_node_id\"", "\"last_link_id\"", "\"class_type\""]) {
+        let idx = text.indexOf(marker);
+        for (let guard = 0; idx !== -1 && guard < 80; guard++) {
+            const obj = enclosingAtIndex(text, idx);
+            if (obj) candidates.add(obj);
+            idx = text.indexOf(marker, idx + marker.length);
+        }
+    }
+    const combined: Variant[] = [];
+    const wfPool: string[] = [];
+    const prPool: string[] = [];
+    for (const cand of candidates) {
+        const c = classifyGraph(cand);
+        if (c.workflow && c.prompt) combined.push(c);
+        else if (c.workflow) wfPool.push(c.workflow);
+        else if (c.prompt) prPool.push(c.prompt);
+    }
+    const bare: Variant[] = [];
+    for (let i = 0; i < Math.max(wfPool.length, prPool.length); i++) bare.push({ workflow: wfPool[i], prompt: prPool[i] });
+    return [...bare, ...combined]; // bare = current/standard tags first, combined = carried-forward lineage
+}
+
+function finalizeVariants(list: Variant[]): Variant[] {
+    const seen = new Set<string>();
+    const out: Variant[] = [];
+    for (const v of list) {
+        if (!v.workflow && !v.prompt) continue;
+        const key = (v.workflow?.length ?? 0) + ":" + (v.prompt?.length ?? 0) + ":" + (v.workflow ?? v.prompt ?? "").slice(0, 160);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(v);
+    }
+    out.forEach((v, i) => { v.label = `Workflow ${i + 1} · ${nodeCount(v)} nodes`; });
+    return out;
+}
+
+function metaFromVariants(variants: Variant[], kind: WorkflowMeta["kind"]): WorkflowMeta {
+    if (!variants.length) return { ok: false, kind };
+    const primary = variants[0];
+    return { ok: true, kind, workflow: primary.workflow, prompt: primary.prompt, variants: variants.length > 1 ? variants : undefined };
 }
 
 /* --------------------------------- PNG ------------------------------------ */
@@ -239,9 +321,7 @@ async function locateMoov(url: string, maxBytes: number): Promise<Buffer | null>
 async function fetchMp4Meta(url: string, maxBytes: number): Promise<WorkflowMeta> {
     const moov = await locateMoov(url, maxBytes);
     if (!moov) return { ok: false, kind: "video", error: "no moov atom found within size limit" };
-    const { workflow, prompt } = scanText(moov.toString("latin1"));
-    if (!workflow && !prompt) return { ok: false, kind: "video" };
-    return { ok: true, kind: "video", workflow, prompt };
+    return metaFromVariants(finalizeVariants(collectGraphs(moov.toString("latin1"))), "video");
 }
 
 /* ------------------------------ WebM / MKV -------------------------------- */
@@ -267,23 +347,15 @@ async function fetchTail(url: string, n: number, maxBytes: number): Promise<Buff
  */
 async function fetchMatroskaMeta(url: string, maxBytes: number): Promise<WorkflowMeta> {
     const window = Math.min(maxBytes, 8 * 1024 * 1024);
-    let workflow: string | undefined;
-    let prompt: string | undefined;
+    const all: Variant[] = [];
 
     const head = await fetchRange(url, 0, window - 1, maxBytes);
-    if (head) {
-        const r = scanText(head.buf.toString("latin1"));
-        workflow ??= r.workflow; prompt ??= r.prompt;
-    }
-    if ((!workflow || !prompt) && !(head?.full)) {
+    if (head) all.push(...collectGraphs(head.buf.toString("latin1")));
+    if (!(head?.full)) {
         const tail = await fetchTail(url, window, maxBytes);
-        if (tail) {
-            const r = scanText(tail.toString("latin1"));
-            workflow ??= r.workflow; prompt ??= r.prompt;
-        }
+        if (tail) all.push(...collectGraphs(tail.toString("latin1")));
     }
-    if (!workflow && !prompt) return { ok: false, kind: "video" };
-    return { ok: true, kind: "video", workflow, prompt };
+    return metaFromVariants(finalizeVariants(all), "video");
 }
 
 async function fetchVideoMeta(url: string, maxBytes: number): Promise<WorkflowMeta> {
