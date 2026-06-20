@@ -12,6 +12,7 @@ import { Button, ChannelStore, React, ReactDOM, useEffect, useRef, useState } fr
 
 import { NodeIcon } from "./icons";
 import { SaveSource } from "./library";
+import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
 import { onBeforeMessageSend } from "./uploadHook";
 import { copyWithToast, downloadJson, findGraphInText, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
@@ -263,6 +264,11 @@ export default definePlugin({
             <Accessory message={props.message} />
         </ErrorBoundary>
     ),
+
+    // always-available entry point to the saved-workflow library (Vencord toolbox)
+    toolboxActions: {
+        "Open ComfyPeeper Library": () => openLibraryModal()
+    },
 
     // attach a workflow .json sidecar when uploading a workflow-bearing video
     onBeforeMessageSend
