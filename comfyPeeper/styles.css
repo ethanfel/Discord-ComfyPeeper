@@ -8,8 +8,29 @@
 }
 .cwg-lib-empty { padding: 40px 20px; color: #9aa1ad; font-style: italic; text-align: center; line-height: 1.8; }
 
+/* library tools row (search + export/import) */
+.cwg-lib-tools { display: flex; align-items: center; gap: 8px; padding: 2px 2px 12px; }
+.cwg-lib-tool {
+    flex-shrink: 0;
+    border: 1px solid #ffffff1f;
+    cursor: pointer;
+    background: #2b2d31;
+    color: #dbe0e6;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.cwg-lib-tool:first-of-type { margin-left: auto; } /* right-align when there's no search box */
+.cwg-lib-tool:hover:not(:disabled) { background: #393c41; }
+.cwg-lib-tool:disabled { opacity: .5; cursor: default; }
+
+.cwg-lib-import-opts { display: flex; flex-direction: column; gap: 7px; padding: 4px 2px; font-size: 13px; color: #dbe0e6; }
+.cwg-lib-import-opts label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.cwg-lib-import-opts input { accent-color: #5865f2; }
+
 /* library search (matches name, channel, and workflow metadata) */
-.cwg-lib-search { display: flex; align-items: center; gap: 8px; padding: 2px 2px 12px; }
+.cwg-lib-search { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
 .cwg-lib-search input {
     flex: 1 1 auto;
     min-width: 0;

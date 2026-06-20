@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Modal, NavigationRouter, openModal, React, useEffect, useState } from "@webpack/common";
+import { Button, Modal, NavigationRouter, openModal, React, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
-import { getLibrary, removeEntry, SavedWf } from "./library";
+import { ConflictResolve, countConflicts, exportLibrary, getLibrary, importLibrary, parseLibraryFile, removeEntry, SavedWf } from "./library";
 import { openWorkflowModal } from "./WorkflowModal";
 
 function bucketLabel(ts: number): string {
@@ -99,11 +99,78 @@ function Card({ e, onDelete, close }: { e: SavedWf; onDelete: () => void; close:
     );
 }
 
+const RESOLVE_OPTS: { v: ConflictResolve; label: string; }[] = [
+    { v: "newest", label: "Keep the newest (by save date)" },
+    { v: "existing", label: "Keep what I already have" },
+    { v: "imported", label: "Use the imported version" }
+];
+
+function ImportDialog({ rootProps, total, conflicts, onConfirm }: { rootProps: any; total: number; conflicts: number; onConfirm: (r: ConflictResolve) => void; }) {
+    const [resolve, setResolve] = useState<ConflictResolve>("newest");
+    const apply = () => { rootProps.onClose(); onConfirm(resolve); };
+    return (
+        <Modal {...rootProps} size="sm" title={
+            <span style={{ display: "inline-flex", alignItems: "center", gap: "8px", flexGrow: 1 }}><NodeIcon size={18} />Import library</span>
+        }>
+            <div style={{ padding: "6px 2px 10px", color: "#c7ccd4", fontSize: "13px", lineHeight: 1.5 }}>
+                Importing <b>{total}</b> workflow{total === 1 ? "" : "s"}.{" "}
+                {conflicts > 0
+                    ? <><b>{conflicts}</b> already in your library — how should conflicts be resolved?</>
+                    : "None are already in your library."}
+            </div>
+            {conflicts > 0 && (
+                <div className="cwg-lib-import-opts">
+                    {RESOLVE_OPTS.map(o => (
+                        <label key={o.v}>
+                            <input type="radio" name="cwg-resolve" checked={resolve === o.v} onChange={() => setResolve(o.v)} />
+                            {o.label}
+                        </label>
+                    ))}
+                </div>
+            )}
+            <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "16px" }}>
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => rootProps.onClose()}>Cancel</Button>
+                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={apply}>Import</Button>
+            </div>
+        </Modal>
+    );
+}
+
 function LibraryModal({ rootProps }: { rootProps: any; }) {
     const [items, setItems] = useState<SavedWf[] | null>(null);
     const [query, setQuery] = useState("");
+    const fileRef = React.useRef<HTMLInputElement>(null);
     const reload = () => { getLibrary().then(setItems); };
     useEffect(reload, []);
+
+    const doExport = async () => {
+        try {
+            const n = await exportLibrary();
+            showToast(`Exported ${n} workflow${n === 1 ? "" : "s"}`, Toasts.Type.SUCCESS);
+        } catch { showToast("Export failed", Toasts.Type.FAILURE); }
+    };
+    const onFile = async (ev: React.ChangeEvent<HTMLInputElement>) => {
+        const file = ev.currentTarget.files?.[0];
+        ev.currentTarget.value = ""; // allow re-picking the same file
+        if (!file) return;
+        let entries;
+        try { entries = parseLibraryFile(await file.text()); }
+        catch { showToast("Not a valid ComfyPeeper library file", Toasts.Type.FAILURE); return; }
+        if (!entries.length) { showToast("No workflows found in that file", Toasts.Type.FAILURE); return; }
+        const conflicts = await countConflicts(entries);
+        openModal(rp => (
+            <ImportDialog
+                rootProps={rp}
+                total={entries.length}
+                conflicts={conflicts}
+                onConfirm={async resolve => {
+                    const r = await importLibrary(entries, resolve);
+                    reload();
+                    showToast(`Imported: ${r.added} new, ${r.updated} updated, ${r.skipped} skipped`, Toasts.Type.SUCCESS);
+                }}
+            />
+        ));
+    };
 
     // searchable text per entry: filename + channel + the workflow/prompt JSON (built once per load)
     const haystacks = React.useMemo(() => {
@@ -127,19 +194,24 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
                 <NodeIcon size={18} />ComfyPeeper Library {items ? `(${items.length})` : ""}
             </span>
         }>
-            {!!items?.length && (
-                <div className="cwg-lib-search">
-                    <input
-                        type="text"
-                        value={query}
-                        onChange={e => setQuery(e.currentTarget.value)}
-                        placeholder="Search name, channel, or workflow contents…"
-                        autoFocus
-                    />
-                    {q
-                        ? <button className="cwg-lib-search-clear" title="Clear" onClick={() => setQuery("")}>✕</button>
-                        : null}
-                    {q ? <span className="cwg-lib-search-count">{visible!.length} match{visible!.length === 1 ? "" : "es"}</span> : null}
+            {items !== null && (
+                <div className="cwg-lib-tools">
+                    {!!items.length && (
+                        <div className="cwg-lib-search">
+                            <input
+                                type="text"
+                                value={query}
+                                onChange={e => setQuery(e.currentTarget.value)}
+                                placeholder="Search name, channel, or workflow contents…"
+                                autoFocus
+                            />
+                            {q ? <button className="cwg-lib-search-clear" title="Clear" onClick={() => setQuery("")}>✕</button> : null}
+                            {q ? <span className="cwg-lib-search-count">{visible!.length} match{visible!.length === 1 ? "" : "es"}</span> : null}
+                        </div>
+                    )}
+                    <button className="cwg-lib-tool" disabled={!items.length} onClick={doExport} title="Download the whole library as a .json">⬇ Export</button>
+                    <button className="cwg-lib-tool" onClick={() => fileRef.current?.click()} title="Import a library .json (merge with conflict resolution)">⬆ Import</button>
+                    <input ref={fileRef} type="file" accept="application/json,.json" style={{ display: "none" }} onChange={onFile} />
                 </div>
             )}
             <div className="cwg-lib">
