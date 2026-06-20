@@ -21,13 +21,16 @@ workflow straight to a ComfyUI instance — local *or* remote.
 ## ✨ Features
 
 - **Auto-detect** ComfyUI workflows embedded in **PNG, WebP, MP4/MOV, and WebM/MKV** attachments, posted directly as a **`.json`** file, or even **pasted as raw JSON / a code block** in a message — with a node-graph badge on the media (or below the message).
+- 🧩 **Multiple workflows per file** — a video often carries a whole chain (e.g. a generation graph *and* a post-processing graph). ComfyPeeper extracts **all** of them and gives you a selector to switch between them in the previewer.
 - 🔬 **Interactive graph preview** — a faithful node-graph render (pan, zoom-to-cursor, fit) showing each node's title, connections, and widget values.
 - 📋 **Parameters view** — every node's settings as a clean, copyable list (seed, steps, cfg, sampler, prompts, LoRAs…).
 - 🧾 **Raw JSON** — both the editor `workflow` and the API `prompt` graphs, selectable and copyable.
 - 💾 **Copy / Save** the workflow or prompt as `.json`.
 - ▶️ **Queue to ComfyUI** — POST the workflow to a running instance, with **one button per configured server** (local and/or remote).
 - ✅ **Server compatibility check** — see which of your servers can actually run a workflow, and which **custom nodes are missing** — highlighted **in red on the graph**, just like ComfyUI.
-- 📚 **Local library** — **★ Save** any workflow to an offline library (stored in-plugin via IndexedDB) with a thumbnail and a jump-link back to the post. Keeps your workflows **even if the original message is deleted** — no need to keep them sitting in Discord. Open it from the plugin settings (*“📚 Open saved workflows library”*) or the **Library** button in the previewer.
+- 📎 **Upload sidecar** — Discord strips metadata from re-encoded videos. When you upload a workflow-bearing video, ComfyPeeper offers to attach the workflow(s) as `.json` sidecar(s) so they **survive for everyone** — and re-pairs them with the video on the receiving end (the whole chain, not just one).
+- 📚 **Local library** — **★ Save** any workflow to an offline library (stored in-plugin via IndexedDB) with a thumbnail and a jump-link back to the post. Keeps your workflows **even if the original message is deleted**. A **date timeline split by the channel** each workflow came from, plus a **search** that matches the filename, the channel, *and* the workflow's own metadata (model names, node types, prompts…). Open it from the **Vencord Toolbox**, the plugin settings, or the **Library** button in the previewer.
+- 🌐 **Desktop *and* browser** — runs in Vesktop/Discord-desktop (native) and on Discord in a web browser via a Tampermonkey userscript (see Install).
 
 ## 📸 Screenshots
 
@@ -56,11 +59,14 @@ ComfyUI saves two graphs in the files it exports:
 | WebM / MKV | Matroska `Tags` (EBML) — scanned at the file's head & tail  |
 | `.json`    | the file itself — an exported `workflow` or API `prompt` graph |
 
-All fetching and parsing happens in Vencord's **native (main) process**, so there are no CORS or
-mixed-content restrictions — that's why plain-`http` local endpoints work. For videos it fetches
-only the metadata region via HTTP **Range** requests, never the whole file. It always reads the
-**original** `cdn.discordapp.com` attachment, never the re-encoded `media.discordapp.net` proxy
-(which strips metadata).
+On desktop, all fetching and parsing happens in Vencord's **native (main) process**, so there are
+no CORS or mixed-content restrictions — that's why plain-`http` local endpoints work. In a browser
+there's no main process, so a **renderer fallback** does the same work with `fetch`; under a
+Tampermonkey userscript Vencord routes that through `GM_xmlhttpRequest`, which likewise bypasses
+CORS + mixed-content (so even a remote `http` ComfyUI can be queued). For videos it fetches only the
+metadata region via HTTP **Range** requests, never the whole file. It always reads the **original**
+`cdn.discordapp.com` attachment, never the re-encoded `media.discordapp.net` proxy (which strips
+metadata).
 
 ## 🚀 Install
 
@@ -98,6 +104,9 @@ See **[docs/INSTALL.md → Browser](docs/INSTALL.md#browser-tampermonkey-userscr
 
 | setting      | description |
 |--------------|-------------|
+| **Open saved workflows library** | Button that opens the local library (also on the Vencord Toolbox and in the previewer). |
+| **attachWorkflowOnUpload** | When you upload a video with an embedded workflow, attach it as a `.json` sidecar so it survives Discord's metadata stripping (default on). |
+| **attachMode** | `Ask each time` (default) or `Attach automatically (no prompt)`. |
 | **endpoints** | Comma-separated ComfyUI servers, optionally labelled: `Local = http://127.0.0.1:8188, Remote = https://gpu.example.com:8188`. A `Queue → <label>` button appears per server. |
 | **badgeMode** | `Overlay on the image` (default, falls back to below-message), `Below the message`, or `Both`. |
 | **autoScan**  | Auto-scan attachments (default on). Off → a small "Check workflow" button instead (saves bandwidth). |
@@ -127,13 +136,16 @@ The plugin is a standard Vencord user-plugin (`comfyPeeper/`):
 
 | file | role |
 |------|------|
-| `index.tsx`         | plugin definition, badge + overlay, message accessory |
-| `native.ts`         | main-process: fetch + PNG/WebP/MP4/MKV parsing, queue, compat check |
-| `WorkflowModal.tsx` | the previewer modal (Graph / Parameters / JSON / actions) |
+| `index.tsx`         | plugin definition, badge + overlay, message accessory, sidecar pairing |
+| `native.ts`         | main-process (desktop): fetch + PNG/WebP/MP4/MKV parsing, queue, compat check |
+| `webFallback.ts`    | renderer fallback (browser/userscript): same surface via `fetch` + typed arrays |
+| `uploadHook.tsx`    | attach workflow `.json` sidecar(s) when uploading a workflow-bearing video |
+| `WorkflowModal.tsx` | the previewer modal (Graph / Parameters / JSON / variant selector / actions) |
 | `WorkflowGraph.tsx` | the interactive SVG node-graph renderer |
-| `settings.ts` · `utils.ts` · `styles.css` | settings, shared helpers, styles |
+| `library.ts` · `LibraryModal.tsx` | the offline library (IndexedDB) and its timeline/search UI |
+| `icons.tsx` · `settings.tsx` · `utils.ts` · `styles.css` | node icon, settings, shared helpers, styles |
 
-Build with the standard Vencord toolchain (`pnpm build` / `pnpm test`).
+Build with the standard Vencord toolchain — `pnpm build` (desktop) or `pnpm buildWeb` (browser/userscript).
 
 ## 📄 License
 
