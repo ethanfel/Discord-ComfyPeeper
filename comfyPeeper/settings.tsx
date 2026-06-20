@@ -18,6 +18,19 @@ export const settings = definePluginSettings({
             <Button onClick={() => openLibraryModal()}>📚 Open saved workflows library</Button>
         )
     },
+    attachWorkflowOnUpload: {
+        type: OptionType.BOOLEAN,
+        default: true,
+        description: "When you upload a video that has an embedded ComfyUI workflow, attach it as a .json sidecar (Discord often strips video metadata, so this lets it survive for everyone)."
+    },
+    attachMode: {
+        type: OptionType.SELECT,
+        description: "How to attach the workflow .json on upload",
+        options: [
+            { label: "Ask each time", value: "ask", default: true },
+            { label: "Attach automatically (no prompt)", value: "auto" }
+        ]
+    },
     badgeMode: {
         type: OptionType.SELECT,
         description: "Where to show the workflow badge",

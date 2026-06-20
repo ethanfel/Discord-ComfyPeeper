@@ -13,6 +13,7 @@ import { Button, ChannelStore, React, ReactDOM, useEffect, useRef, useState } fr
 import { NodeIcon } from "./icons";
 import { SaveSource } from "./library";
 import { settings } from "./settings";
+import { onBeforeMessageSend } from "./uploadHook";
 import { copyWithToast, downloadJson, findGraphInText, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
 import { openWorkflowModal } from "./WorkflowModal";
 
@@ -37,7 +38,8 @@ function BadgePill({ att, meta, compact, source }: { att: any; meta: WorkflowMet
     const endpoints = parseEndpoints(settings.store.endpoints);
     const json = meta.workflow ?? meta.prompt!;
     const baseName = (att.filename || "workflow").replace(/\.[^.]+$/, "");
-    const kindTag = meta.kind && meta.kind !== "png" ? ` (${meta.kind})` : "";
+    const n = meta.variants?.length ?? 0;
+    const kindTag = n > 1 ? ` (${n} workflows)` : (meta.kind && meta.kind !== "png" ? ` (${meta.kind})` : "");
 
     return (
         <div className={"cwg-badge" + (compact ? " cwg-compact" : "")}>
@@ -63,7 +65,27 @@ function BadgePill({ att, meta, compact, source }: { att: any; meta: WorkflowMet
     );
 }
 
-function WorkflowControls({ att, kind, source }: { att: any; kind: Kind; source?: SaveSource; }) {
+function countNodes(m: { workflow?: string; prompt?: string; }): number {
+    try {
+        if (m.workflow) return JSON.parse(m.workflow).nodes?.length ?? 0;
+        if (m.prompt) return Object.keys(JSON.parse(m.prompt)).length;
+    } catch { /* ignore */ }
+    return 0;
+}
+
+/** A stripped video lost its embedded graphs — rebuild the multi-workflow chain from the
+ *  sidecars we attached at upload time (<base>.workflow.json, <base>.workflow2.json, …). */
+async function metaFromSidecars(sidecars: any[], kind: Kind): Promise<WorkflowMeta | null> {
+    const metas = await Promise.all(sidecars.map(s => getMeta(s, "json")));
+    const variants = metas
+        .filter(x => x.ok && (x.workflow || x.prompt))
+        .map((x, i) => ({ label: `Workflow ${i + 1} · ${countNodes(x)} nodes`, workflow: x.workflow, prompt: x.prompt }));
+    if (!variants.length) return null;
+    const p = variants[0];
+    return { ok: true, kind, workflow: p.workflow, prompt: p.prompt, variants: variants.length > 1 ? variants : undefined };
+}
+
+function WorkflowControls({ att, kind, source, metaAtts }: { att: any; kind: Kind; source?: SaveSource; metaAtts?: any[]; }) {
     const [meta, setMeta] = useState<WorkflowMeta | null>(null);
     const [busy, setBusy] = useState(false);
     const [host, setHost] = useState<HTMLElement | null>(null);
@@ -72,7 +94,12 @@ function WorkflowControls({ att, kind, source }: { att: any; kind: Kind; source?
 
     const scan = () => {
         setBusy(true);
-        getMeta(att, kind).then(setMeta).finally(() => setBusy(false));
+        // Prefer the media's OWN metadata (richer — may contain multiple workflows). If it was
+        // stripped (e.g. Discord re-encoded the video) rebuild the chain from the .json sidecars.
+        getMeta(att, kind)
+            .then(m => (m.ok || !metaAtts?.length) ? m : metaFromSidecars(metaAtts, kind).then(s => s ?? m))
+            .then(setMeta)
+            .finally(() => setBusy(false));
     };
 
     useEffect(() => {
@@ -166,17 +193,42 @@ function Accessory({ message }: { message: any; }) {
     const textGraph = React.useMemo(() => findGraphInText(message?.content), [message?.content]);
     if (!atts.length && !textGraph) return null;
 
+    // pair "<base>.workflow.json" / "<base>.workflow2.json" / "<base>.json" sidecars (a whole
+    // workflow chain may have been attached) with their "<base>.<videoext>" video
+    const orderKey = (fn: string) => { const m = /\.workflow(\d+)\.json$/i.exec(fn); return m ? parseInt(m[1], 10) : 0; };
+    const sidecarsByBase = new Map<string, any[]>();
+    for (const { a, kind } of atts) {
+        if (kind !== "json") continue;
+        const fn = String(a.filename ?? "").toLowerCase();
+        const b = fn.replace(/\.workflow\d*\.json$/, "").replace(/\.json$/, "");
+        if (!b) continue;
+        (sidecarsByBase.get(b) ?? sidecarsByBase.set(b, []).get(b)!).push(a);
+    }
+    for (const arr of sidecarsByBase.values())
+        arr.sort((x, y) => orderKey(String(x.filename ?? "")) - orderKey(String(y.filename ?? "")));
+
+    const sidecarsFor = (a: any, kind: string) => {
+        if (kind !== "video") return undefined;
+        return sidecarsByBase.get(String(a.filename ?? "").toLowerCase().replace(/\.[^.]+$/, ""));
+    };
+    const usedJsonIds = new Set<string>();
+    for (const { a, kind } of atts)
+        for (const sj of sidecarsFor(a, kind) ?? []) usedJsonIds.add(sj.id);
+
     const messageLink = messageLinkOf(message);
     return (
         <>
-            {atts.map(({ a, kind }: any) => (
-                <WorkflowControls
-                    key={a.id}
-                    att={a}
-                    kind={kind}
-                    source={{ messageId: message.id, messageLink, sourceUrl: a.url, isImage: kind === "png" || kind === "webp" }}
-                />
-            ))}
+            {atts
+                .filter(({ a, kind }: any) => !(kind === "json" && usedJsonIds.has(a.id))) // hide sidecars; they badge their video
+                .map(({ a, kind }: any) => (
+                    <WorkflowControls
+                        key={a.id}
+                        att={a}
+                        kind={kind}
+                        metaAtts={sidecarsFor(a, kind)}
+                        source={{ messageId: message.id, messageLink, sourceUrl: a.url, isImage: kind === "png" || kind === "webp" }}
+                    />
+                ))}
             {textGraph && (
                 <BadgePill
                     att={{ id: `txt-${message.id}`, filename: "pasted-workflow.json", content_type: "application/json" }}
@@ -201,5 +253,8 @@ export default definePlugin({
         <ErrorBoundary noop>
             <Accessory message={props.message} />
         </ErrorBoundary>
-    )
+    ),
+
+    // attach a workflow .json sidecar when uploading a workflow-bearing video
+    onBeforeMessageSend
 });
