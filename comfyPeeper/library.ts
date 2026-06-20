@@ -19,6 +19,8 @@ export interface SavedWf {
     thumb?: string; // small data URL, stored locally so it survives deletion
     sourceUrl?: string; // original CDN url (expires when the message is deleted)
     messageLink?: string; // discord jump link to the original post
+    channelId?: string; // channel it was collected from
+    channelName?: string; // pretty channel name for grouping (e.g. "#art")
 }
 
 export interface SaveSource {
@@ -27,6 +29,8 @@ export interface SaveSource {
     messageLink?: string;
     sourceUrl?: string;
     isImage?: boolean;
+    channelId?: string;
+    channelName?: string;
 }
 
 const KEY = "ComfyPeeper_library";
@@ -93,7 +97,9 @@ export async function saveToLibrary(
         prompt: meta.prompt,
         thumb,
         sourceUrl: source?.sourceUrl,
-        messageLink: source?.messageLink
+        messageLink: source?.messageLink,
+        channelId: source?.channelId,
+        channelName: source?.channelName
     };
     await addEntry(entry);
     return entry;

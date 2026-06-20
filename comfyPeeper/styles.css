@@ -8,6 +8,63 @@
 }
 .cwg-lib-empty { padding: 40px 20px; color: #9aa1ad; font-style: italic; text-align: center; line-height: 1.8; }
 
+/* library search (matches name, channel, and workflow metadata) */
+.cwg-lib-search { display: flex; align-items: center; gap: 8px; padding: 2px 2px 12px; }
+.cwg-lib-search input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: #1b1d23;
+    border: 1px solid #ffffff1f;
+    border-radius: 8px;
+    padding: 7px 11px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
+}
+.cwg-lib-search input:focus { border-color: #5865f2; }
+.cwg-lib-search input::placeholder { color: #6b727d; }
+.cwg-lib-search-clear {
+    flex-shrink: 0;
+    border: none;
+    cursor: pointer;
+    background: #2b2d31;
+    color: #c7ccd4;
+    border-radius: 7px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+.cwg-lib-search-clear:hover { background: #393c41; }
+.cwg-lib-search-count { flex-shrink: 0; font-size: 11px; color: #8a93a0; }
+
+/* channel splitter — divides a date bucket by the channel each workflow came from */
+.cwg-lib-chan-group { margin-bottom: 16px; }
+.cwg-lib-chan-group:last-child { margin-bottom: 4px; }
+.cwg-lib-chan {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #aeb6ff;
+}
+.cwg-lib-chan-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+.cwg-lib-chan::after {
+    content: "";
+    flex: 1 1 auto;
+    height: 1px;
+    background: linear-gradient(90deg, #5865f255, transparent);
+}
+.cwg-lib-chan-count {
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: #aab1be;
+    background: #ffffff14;
+    border-radius: 9px;
+    padding: 1px 8px;
+}
+
 /* the timeline rail */
 .cwg-lib-timeline {
     position: relative;

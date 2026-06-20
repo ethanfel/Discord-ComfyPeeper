@@ -43,6 +43,18 @@ function groupByDate(items: SavedWf[]): { label: string; items: SavedWf[]; }[] {
     return out;
 }
 
+/** Group by the Discord channel a workflow was collected from; most recently active channel first. */
+function groupByChannel(items: SavedWf[]): { label: string; items: SavedWf[]; }[] {
+    const map = new Map<string, SavedWf[]>();
+    for (const it of items) {
+        const label = it.channelName || "Unknown channel";
+        (map.get(label) ?? map.set(label, []).get(label)!).push(it);
+    }
+    return [...map.values()]
+        .map(list => ({ label: list[0].channelName || "Unknown channel", items: list.sort((a, b) => b.savedAt - a.savedAt) }))
+        .sort((a, b) => b.items[0].savedAt - a.items[0].savedAt);
+}
+
 function openSaved(e: SavedWf) {
     const att = {
         id: e.id,
@@ -53,7 +65,7 @@ function openSaved(e: SavedWf) {
     openWorkflowModal(
         att,
         { ok: true, kind: e.kind as any, workflow: e.workflow, prompt: e.prompt },
-        { id: e.id, messageLink: e.messageLink, sourceUrl: e.sourceUrl }
+        { id: e.id, messageLink: e.messageLink, sourceUrl: e.sourceUrl, channelId: e.channelId, channelName: e.channelName }
     );
 }
 
@@ -89,10 +101,25 @@ function Card({ e, onDelete, close }: { e: SavedWf; onDelete: () => void; close:
 
 function LibraryModal({ rootProps }: { rootProps: any; }) {
     const [items, setItems] = useState<SavedWf[] | null>(null);
+    const [query, setQuery] = useState("");
     const reload = () => { getLibrary().then(setItems); };
     useEffect(reload, []);
 
-    const groups = items ? groupByDate(items) : [];
+    // searchable text per entry: filename + channel + the workflow/prompt JSON (built once per load)
+    const haystacks = React.useMemo(() => {
+        const m = new Map<string, string>();
+        for (const e of items ?? [])
+            m.set(e.id, `${e.title}\n${e.channelName ?? ""}\n${e.workflow ?? ""}\n${e.prompt ?? ""}`.toLowerCase());
+        return m;
+    }, [items]);
+
+    const q = query.trim().toLowerCase();
+    const visible = items ? (q ? items.filter(e => haystacks.get(e.id)?.includes(q)) : items) : null;
+
+    // primary timeline by date; within each date, split by the channel it was collected from
+    const groups = visible
+        ? groupByDate(visible).map(d => ({ label: d.label, total: d.items.length, channels: groupByChannel(d.items) }))
+        : [];
 
     return (
         <Modal {...rootProps} size="lg" title={
@@ -100,21 +127,43 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
                 <NodeIcon size={18} />ComfyPeeper Library {items ? `(${items.length})` : ""}
             </span>
         }>
+            {!!items?.length && (
+                <div className="cwg-lib-search">
+                    <input
+                        type="text"
+                        value={query}
+                        onChange={e => setQuery(e.currentTarget.value)}
+                        placeholder="Search name, channel, or workflow contents…"
+                        autoFocus
+                    />
+                    {q
+                        ? <button className="cwg-lib-search-clear" title="Clear" onClick={() => setQuery("")}>✕</button>
+                        : null}
+                    {q ? <span className="cwg-lib-search-count">{visible!.length} match{visible!.length === 1 ? "" : "es"}</span> : null}
+                </div>
+            )}
             <div className="cwg-lib">
                 {items === null
                     ? <div className="cwg-lib-empty">Loading…</div>
                     : items.length === 0
                         ? <div className="cwg-lib-empty">No saved workflows yet.<br />Open a workflow and hit <b>★ Save</b>.</div>
-                        : <div className="cwg-lib-timeline cwg-selectable">
-                            {groups.map(g => (
-                                <div className="cwg-lib-section" key={g.label}>
-                                    <div className="cwg-lib-head">{g.label}<span className="cwg-lib-count">{g.items.length}</span></div>
-                                    <div className="cwg-lib-grid">
-                                        {g.items.map(e => <Card key={e.id} e={e} close={rootProps.onClose} onDelete={() => removeEntry(e.id).then(reload)} />)}
+                        : visible!.length === 0
+                            ? <div className="cwg-lib-empty">No workflows match “{query.trim()}”.</div>
+                            : <div className="cwg-lib-timeline cwg-selectable">
+                                {groups.map(d => (
+                                    <div className="cwg-lib-section" key={d.label}>
+                                        <div className="cwg-lib-head">{d.label}<span className="cwg-lib-count">{d.total}</span></div>
+                                        {d.channels.map(c => (
+                                            <div className="cwg-lib-chan-group" key={c.label}>
+                                                <div className="cwg-lib-chan"><span className="cwg-lib-chan-name">{c.label}</span><span className="cwg-lib-chan-count">{c.items.length}</span></div>
+                                                <div className="cwg-lib-grid">
+                                                    {c.items.map(e => <Card key={e.id} e={e} close={rootProps.onClose} onDelete={() => removeEntry(e.id).then(reload)} />)}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                </div>
-                            ))}
-                        </div>}
+                                ))}
+                            </div>}
             </div>
         </Modal>
     );

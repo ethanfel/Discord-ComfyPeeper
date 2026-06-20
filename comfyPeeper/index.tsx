@@ -185,6 +185,14 @@ function messageLinkOf(message: any): string | undefined {
     } catch { return undefined; }
 }
 
+/** Pretty channel info for grouping saved workflows by where they were collected. */
+function channelMetaOf(message: any): { channelId?: string; channelName?: string; } {
+    try {
+        const ch = ChannelStore.getChannel(message.channel_id);
+        return { channelId: message.channel_id, channelName: ch?.name ? `#${ch.name}` : "Direct Messages" };
+    } catch { return {}; }
+}
+
 function Accessory({ message }: { message: any; }) {
     const atts = (message?.attachments ?? [])
         .map((a: any) => ({ a, kind: kindOf(a) }))
@@ -216,6 +224,7 @@ function Accessory({ message }: { message: any; }) {
         for (const sj of sidecarsFor(a, kind) ?? []) usedJsonIds.add(sj.id);
 
     const messageLink = messageLinkOf(message);
+    const chan = channelMetaOf(message);
     return (
         <>
             {atts
@@ -226,14 +235,14 @@ function Accessory({ message }: { message: any; }) {
                         att={a}
                         kind={kind}
                         metaAtts={sidecarsFor(a, kind)}
-                        source={{ messageId: message.id, messageLink, sourceUrl: a.url, isImage: kind === "png" || kind === "webp" }}
+                        source={{ messageId: message.id, messageLink, ...chan, sourceUrl: a.url, isImage: kind === "png" || kind === "webp" }}
                     />
                 ))}
             {textGraph && (
                 <BadgePill
                     att={{ id: `txt-${message.id}`, filename: "pasted-workflow.json", content_type: "application/json" }}
                     meta={textGraph}
-                    source={{ messageId: message.id, messageLink }}
+                    source={{ messageId: message.id, messageLink, ...chan }}
                 />
             )}
         </>
