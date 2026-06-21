@@ -53,4 +53,18 @@ else
     echo ">> Vesktop config dir not found; built to $VENCORD_DIR/dist (use 'pnpm inject' for desktop Vencord)."
 fi
 
+# 5. also refresh the browser userscript so it never lags behind the desktop build
+#    (runs after the desktop deploy above, since buildWeb overwrites dist/). Set
+#    SKIP_USERSCRIPT=1 to skip if you only care about desktop.
+if [ "${SKIP_USERSCRIPT:-0}" != "1" ]; then
+    echo ">> rebuilding browser userscript…"
+    pnpm buildWeb
+    OUT="$VENCORD_DIR/dist/Vencord.user.js"
+    if [ -f "$OUT" ] && grep -q ComfyPeeper "$OUT"; then
+        echo ">> OK: userscript refreshed → $OUT"
+    else
+        echo ">> WARNING: ComfyPeeper not found in the userscript build."
+    fi
+fi
+
 echo ">> Done. Fully QUIT Vesktop from the tray, reopen it, and enable ComfyPeeper."
