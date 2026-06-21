@@ -10,8 +10,9 @@ import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
 import { Button, ChannelStore, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
 
+import { imageAssociateContextPatch, messageAssociateContextPatch } from "./associate";
 import { NodeIcon } from "./icons";
-import { SaveSource } from "./library";
+import { SaveSource, warmLibraryCache } from "./library";
 import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
 import { onBeforeMessageSend } from "./uploadHook";
@@ -269,6 +270,15 @@ export default definePlugin({
     toolboxActions: {
         "Open ComfyPeeper Library": () => openLibraryModal()
     },
+
+    // right-click an image/video → associate it with a saved workflow's preview
+    contextMenus: {
+        "image-context": imageAssociateContextPatch,
+        "message": messageAssociateContextPatch
+    },
+
+    // warm the library snapshot so the associate submenu can list recent entries synchronously
+    start() { void warmLibraryCache(); },
 
     // attach a workflow .json sidecar when uploading a workflow-bearing video
     onBeforeMessageSend

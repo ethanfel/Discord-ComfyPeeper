@@ -59,8 +59,9 @@ function openSaved(e: SavedWf) {
     const att = {
         id: e.id,
         filename: e.title,
-        content_type: e.thumb ? "image/webp" : "application/json",
-        url: e.thumb || e.sourceUrl
+        // a manually-associated video plays from its source; otherwise show the stored image preview
+        content_type: e.mediaIsVideo ? "video/mp4" : (e.thumb ? "image/webp" : "application/json"),
+        url: e.mediaIsVideo ? (e.sourceUrl || e.thumb) : (e.thumb || e.sourceUrl)
     };
     openWorkflowModal(
         att,
