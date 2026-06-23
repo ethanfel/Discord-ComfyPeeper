@@ -1,8 +1,10 @@
 # Install guide (Windows)
 
 ComfyPeeper is a **Vencord user-plugin**. User-plugins only load in a **Vencord built from
-source** — the one-click installer build can't run them. These steps use **PowerShell** (the
-default on Windows 10/11). Pick your client below.
+source** — the one-click Vencord installer build can't run them. You do **not** build Discord or
+Vesktop from source: regular installed Discord/Vesktop are the hosts, and the source build is only
+the Vencord bundle that contains the plugin. These steps use **PowerShell** (the default on
+Windows 10/11). Pick your client below.
 
 - [Prerequisites](#prerequisites)
 - [Automatic installer](#automatic-installer)
@@ -49,8 +51,10 @@ powershell -ExecutionPolicy Bypass -File .\scripts\install-windows.ps1
 
 The script shows a menu for:
 
-- **Discord desktop**: builds Vencord, then runs `pnpm inject`.
-- **Vesktop**: builds Vencord, then copies the built files to
+- **Discord desktop**: builds Vencord, then injects that custom Vencord build into regular
+  Discord.
+- **Vesktop**: builds Vencord, then copies the built files to regular Vesktop's managed Vencord
+  directory:
   `%APPDATA%\vesktop\sessionData\vencordFiles`.
 - **Browser userscript**: builds `Vencord.user.js` for Tampermonkey.
 
@@ -116,8 +120,11 @@ The manual steps below do the same thing and are useful for troubleshooting.
 
 ## Vesktop
 
+Use your normal installed Vesktop. You do **not** build Vesktop from source. The only source build
+is Vencord with ComfyPeeper copied into `src\userplugins`.
+
 Vesktop bundles its own Vencord and (as of 1.6.5) **ignores the custom "Vencord location"
-setting**, so you copy the built files into the folder Vesktop actually loads from:
+setting**, so you copy the custom Vencord build into the folder Vesktop actually loads from:
 `%APPDATA%\vesktop\sessionData\vencordFiles`.
 
 ```powershell

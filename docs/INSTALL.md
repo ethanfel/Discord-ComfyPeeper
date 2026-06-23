@@ -1,12 +1,15 @@
 # Install guide
 
 ComfyPeeper is a **Vencord user-plugin**. User-plugins only work in a **Vencord built from
-source** — the one-click installer build cannot load them. Pick your client below.
+source** — the one-click Vencord installer build cannot load them. You do **not** build Discord
+or Vesktop from source: regular installed Discord/Vesktop are the hosts, and the source build is
+only the Vencord bundle that contains the plugin. Pick your client below.
 
 > **On Windows?** Use the **[Windows install guide → INSTALL-WINDOWS.md](INSTALL-WINDOWS.md)**
 > (PowerShell commands + Windows paths). The steps below assume Linux/macOS.
 
 - [Prerequisites](#prerequisites)
+- [Linux automatic installer](#linux-automatic-installer)
 - [Vencord (Discord desktop)](#vencord-discord-desktop)
 - [Vesktop](#vesktop)
 - [Updating](#updating)
@@ -23,6 +26,50 @@ source** — the one-click installer build cannot load them. Pick your client be
   ```bash
   git clone https://github.com/ethanfel/Discord-ComfyPeeper
   ```
+
+---
+
+## Linux automatic installer
+
+Recommended for most Linux users:
+
+```bash
+cd Discord-ComfyPeeper
+./scripts/install-linux.sh
+```
+
+The script shows a menu for:
+
+- **Discord desktop**: builds Vencord, then injects that custom Vencord build into regular
+  Discord.
+- **Vesktop**: builds Vencord, then copies the built files to the regular Vesktop managed Vencord
+  directory.
+- **Browser userscript**: builds `Vencord.user.js` for Tampermonkey.
+
+It is safe to rerun. It handles common partial installs:
+
+- Reuses an existing `~/Vencord` source checkout, or clones it if missing.
+- Clones into an existing empty `~/Vencord` folder.
+- Replaces an older `src/userplugins/comfyPeeper` copy before rebuilding.
+- Warns if Discord or Vesktop is still running.
+- Detects the normal Vesktop config path, Flatpak Vesktop, and Snap Vesktop. If Vesktop was just
+  installed, launch it once, fully quit it, then rerun the script.
+
+Direct examples:
+
+```bash
+# Vesktop only, with default yes answers
+./scripts/install-linux.sh --client vesktop --yes
+
+# Discord desktop
+./scripts/install-linux.sh --client discord
+
+# Browser / Tampermonkey
+./scripts/install-linux.sh --client browser
+```
+
+The manual steps below do the same thing and are useful for troubleshooting. On macOS, use the
+manual steps.
 
 ---
 
@@ -52,11 +99,24 @@ source** — the one-click installer build cannot load them. Pick your client be
 
 ## Vesktop
 
-Vesktop bundles its own Vencord. Importantly, **Vesktop (tested on 1.6.5) ignores the custom
-"Vencord location" (`vencordDir`) setting** — so you must place the built files in the directory
-Vesktop *actually* loads from.
+Use your normal installed Vesktop. You do **not** build Vesktop from source. The only source build
+is Vencord with ComfyPeeper copied into `src/userplugins`.
 
-### Option A — one-step helper script
+Vesktop bundles its own Vencord. Importantly, **Vesktop (tested on 1.6.5) ignores the custom
+"Vencord location" (`vencordDir`) setting** — so you must place the custom Vencord build in the
+directory Vesktop *actually* loads from.
+
+### Option A — Linux automatic installer
+
+From the repo root:
+
+```bash
+./scripts/install-linux.sh --client vesktop
+```
+
+It handles normal, Flatpak, and Snap Vesktop config paths.
+
+### Option B — Vesktop-only helper script
 
 From the repo root:
 
@@ -71,7 +131,7 @@ and copy the result into Vesktop's managed Vencord directory
 Then **fully quit Vesktop from the tray** (not just close the window — it minimises to tray) and
 reopen it. Enable **ComfyPeeper** in Settings → Plugins.
 
-### Option B — manual
+### Option C — manual
 
 ```bash
 # 1. a from-source Vencord with the plugin
@@ -137,15 +197,13 @@ After pulling new changes to this repo (or to Vencord):
 
 ```bash
 # Vencord desktop
-mkdir -p ~/Vencord/src/userplugins
-rm -rf ~/Vencord/src/userplugins/comfyPeeper
-cp -r comfyPeeper ~/Vencord/src/userplugins/comfyPeeper
-cd ~/Vencord
-pnpm build
-pnpm inject
+./scripts/install-linux.sh --client discord
 
 # Vesktop
-VENCORD_DIR=~/Vencord ./scripts/install-vesktop.sh   # then quit + reopen Vesktop
+./scripts/install-linux.sh --client vesktop   # then quit + reopen Vesktop
+
+# Browser
+./scripts/install-linux.sh --client browser   # then re-import the userscript in Tampermonkey
 ```
 
 If a Vencord auto-update ever overwrites Vesktop's managed copy and the badge disappears, just

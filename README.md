@@ -12,7 +12,7 @@ workflow straight to a ComfyUI instance — local *or* remote.
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-5865f2.svg)](LICENSE)
 ![Formats](https://img.shields.io/badge/formats-PNG%20%C2%B7%20WebP%20%C2%B7%20MP4%20%C2%B7%20WebM%2FMKV%20%C2%B7%20JSON-43b581)
-![Client](https://img.shields.io/badge/Vencord%20%2F%20Vesktop-from%20source-5865f2)
+![Client](https://img.shields.io/badge/Vencord-custom%20build-5865f2)
 
 </div>
 
@@ -74,10 +74,17 @@ metadata).
 
 ## 🚀 Install
 
-> Custom plugins require a **Vencord built from source** — the official installer build can't load
-> user-plugins. See the **[full install guide → docs/INSTALL.md](docs/INSTALL.md)** (Vesktop
-> ignores the custom-Vencord setting and needs an extra step), or the
-> **[Windows guide → docs/INSTALL-WINDOWS.md](docs/INSTALL-WINDOWS.md)** for PowerShell steps.
+> Custom plugins require a **Vencord built from source** — the official Vencord installer build
+> can't load user-plugins. You do **not** build Discord or Vesktop from source: regular installed
+> Discord/Vesktop are the hosts. See the **[full install guide → docs/INSTALL.md](docs/INSTALL.md)**
+> or the **[Windows guide → docs/INSTALL-WINDOWS.md](docs/INSTALL-WINDOWS.md)**.
+
+**Linux helper:**
+
+```bash
+cd Discord-ComfyPeeper
+./scripts/install-linux.sh
+```
 
 **Windows helper:**
 
