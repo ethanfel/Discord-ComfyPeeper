@@ -11,9 +11,11 @@ import definePlugin from "@utils/types";
 import { Button, ChannelStore, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
 
 import { imageAssociateContextPatch, messageAssociateContextPatch } from "./associate";
+import { addDropItem, mountDropInbox, unmountDropInbox } from "./dropInbox";
 import { NodeIcon } from "./icons";
 import { SaveSource, warmLibraryCache } from "./library";
 import { openLibraryModal } from "./LibraryModal";
+import { channelIdOf, channelRepostFavPatch, imageRepostContextPatch, messageRepostContextPatch } from "./repost";
 import { settings } from "./settings";
 import { onBeforeMessageSend } from "./uploadHook";
 import { copyWithToast, downloadJson, findGraphInText, getMeta, hasMedia, Kind, kindOf, parseEndpoints, queue, WorkflowMeta } from "./utils";
@@ -281,14 +283,34 @@ export default definePlugin({
         "Open ComfyPeeper Library": () => openLibraryModal()
     },
 
-    // right-click an image/video → associate it with a saved workflow's preview
+    // right-click an image/video → associate it with a saved workflow's preview, or repost it elsewhere
     contextMenus: {
-        "image-context": imageAssociateContextPatch,
-        "message": messageAssociateContextPatch
+        "image-context": (children: any, props: any) => { imageAssociateContextPatch(children, props); imageRepostContextPatch(children, props); },
+        "message": (children: any, props: any) => { messageAssociateContextPatch(children, props); messageRepostContextPatch(children, props); },
+        "channel-context": channelRepostFavPatch
     },
 
-    // warm the library snapshot so the associate submenu can list recent entries synchronously
-    start() { void warmLibraryCache(); },
+    // watch the configured drop channel: surface arriving images in the inbox overlay for one-click repost
+    flux: {
+        MESSAGE_CREATE({ message, optimistic }: { message: any; optimistic: boolean; }) {
+            try {
+                if (optimistic) return;
+                const raw = settings.store.dropChannel?.trim();
+                if (!raw) return;
+                const dropId = channelIdOf(raw);
+                if (!dropId || String(message?.channel_id) !== dropId) return;
+                for (const a of message?.attachments ?? []) {
+                    const k = kindOf(a);
+                    if (k === "png" || k === "webp" || k === "video")
+                        addDropItem({ id: String(a.id), url: a.url, filename: a.filename || "image", isVideo: k === "video" });
+                }
+            } catch { /* never let a message event throw */ }
+        }
+    },
+
+    // warm the library snapshot (for the associate submenu) and mount the drop-inbox overlay
+    start() { void warmLibraryCache(); mountDropInbox(); },
+    stop() { unmountDropInbox(); },
 
     // attach a workflow .json sidecar when uploading a workflow-bearing video
     onBeforeMessageSend

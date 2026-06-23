@@ -33,6 +33,22 @@ export const settings = definePluginSettings({
         default: false,
         description: "Automatically back up every media-bearing workflow to the backup folder the moment you save it. ⚠ Can clutter the folder fast — leave off and back up by hand unless you really want everything kept."
     },
+    repostTargets: {
+        type: OptionType.STRING,
+        default: "",
+        description:
+            "Favorite channels for right-click → Repost to… Comma/newline separated channel links (or IDs), " +
+            "optionally labelled, e.g. \"Art = https://discord.com/channels/123/456, https://discord.com/channels/123/789\". " +
+            "A searchable \"Choose channel…\" picker is always available too."
+    },
+    dropChannel: {
+        type: OptionType.STRING,
+        default: "",
+        description:
+            "Webhook \"drop\" channel to watch (paste its link or ID). When an image lands there (e.g. from the " +
+            "companion's Send to Discord), a small inbox pops up bottom-right with a one-click Repost — so you " +
+            "never have to open the channel. Leave empty to disable."
+    },
     yoink: {
         type: OptionType.BOOLEAN,
         default: false,
