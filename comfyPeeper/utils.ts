@@ -129,6 +129,27 @@ export async function checkServer(ep: Endpoint, promptJson: string): Promise<Ser
     return { ep, ...r };
 }
 
+/* ------------------------- companion (ComfyUI) ---------------------------- */
+
+export interface Companion { ep: Endpoint; name: string; caps: string[]; }
+
+/** Probe configured endpoints for the ComfyPeeper companion; returns the ones present. */
+export async function findCompanions(eps: Endpoint[]): Promise<Companion[]> {
+    const found = await Promise.all(eps.map(async ep => {
+        const r = await Native.getCompanionInfo(ep.url).catch(() => ({ ok: false } as any));
+        return r.ok ? { ep, name: r.name || ep.label, caps: r.caps || [] } as Companion : null;
+    }));
+    return found.filter((c): c is Companion => !!c);
+}
+
+/** Ask a companion to open the workflow in its live ComfyUI editor tab. */
+export async function sendToOpenTab(ep: Endpoint, workflowJson: string) {
+    showToast(`Sending to ${ep.label}…`, Toasts.Type.MESSAGE);
+    const r = await Native.sendToComfyUI(ep.url, workflowJson);
+    if (r.ok) showToast(`Sent to ${ep.label} — open/focus a ComfyUI tab to see it`, Toasts.Type.SUCCESS);
+    else showToast(`Send failed: ${(r.data || `HTTP ${r.status}`).slice(0, 200)}`, Toasts.Type.FAILURE);
+}
+
 /* ----------------------- advanced mode: LoRA presence --------------------- */
 
 export interface LoraRef { name: string; nodeId: string; strength?: string; }

@@ -10,7 +10,7 @@ import { NodeIcon } from "./icons";
 import { entryId, hasEntry, loadLocalMediaUrl, SaveSource, saveToLibrary } from "./library";
 import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
-import { checkLoras, checkServer, civArchiveSearchUrl, civitaiRedSearchUrl, civitaiSearchUrl, copyWithToast, downloadJson, Endpoint, extractLoras, extractParams, huggingFaceSearchUrl, LoraCheck, LoraRef, Native, parseCivitaiRef, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
+import { checkLoras, checkServer, civArchiveSearchUrl, civitaiRedSearchUrl, civitaiSearchUrl, Companion, copyWithToast, downloadJson, Endpoint, extractLoras, extractParams, findCompanions, huggingFaceSearchUrl, LoraCheck, LoraRef, Native, parseCivitaiRef, parseEndpoints, queue, sendToOpenTab, ServerCheck, WorkflowMeta } from "./utils";
 import { WorkflowGraph } from "./WorkflowGraph";
 
 const pretty = (text?: string) => {
@@ -208,6 +208,15 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
     }, [source?.localPath]);
     const mediaSrc = localSrc || mediaUrl;
 
+    // companion (advanced): which configured ComfyUI servers can open this workflow in their tab
+    const [companions, setCompanions] = useState<Companion[]>([]);
+    useEffect(() => {
+        if (!advanced || !v.workflow) { setCompanions([]); return; }
+        let alive = true;
+        findCompanions(endpoints).then(c => { if (alive) setCompanions(c); });
+        return () => { alive = false; };
+    }, [advanced, vi]);
+
     const runCheck = async () => {
         setChecking(true);
         try { setCompat(await Promise.all(endpoints.map(ep => checkServer(ep, v.prompt!)))); }
@@ -292,6 +301,11 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                 {v.prompt && endpoints.map(ep => (
                     <Button key={ep.url} size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={() => queue(ep, v.prompt!)}>
                         ▶ {endpoints.length > 1 ? ep.label : "Queue"}
+                    </Button>
+                ))}
+                {advanced && v.workflow && companions.map(c => (
+                    <Button key={"send-" + c.ep.url} size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => sendToOpenTab(c.ep, v.workflow!)}>
+                        ⇪ Send → {c.name}
                     </Button>
                 ))}
             </div>

@@ -462,6 +462,43 @@ export async function getMissingNodes(
     }
 }
 
+/* --------------------------- companion (ComfyUI) -------------------------- */
+
+/** Friendly name + capabilities advertised by the ComfyPeeper companion, if installed. */
+export async function getCompanionInfo(
+    _: IpcMainInvokeEvent,
+    endpoint: string
+): Promise<{ ok: boolean; name?: string; caps?: string[]; error?: string; }> {
+    try {
+        const base = endpoint.replace(/\/+$/, "");
+        const res = await fetch(`${base}/comfypeeper/info`);
+        if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+        const info = await res.json();
+        return { ok: true, name: info?.name, caps: Array.isArray(info?.caps) ? info.caps : [] };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+/** Ask the companion to load a workflow into the open ComfyUI editor tab(s). */
+export async function sendToComfyUI(
+    _: IpcMainInvokeEvent,
+    endpoint: string,
+    workflowJson: string
+): Promise<{ ok: boolean; status: number; data: string; }> {
+    try {
+        const base = endpoint.replace(/\/+$/, "");
+        const res = await fetch(`${base}/comfypeeper/load`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ workflow: JSON.parse(workflowJson) })
+        });
+        return { ok: res.ok, status: res.status, data: await res.text() };
+    } catch (e) {
+        return { ok: false, status: -1, data: String(e) };
+    }
+}
+
 /* ----------------------- advanced mode: LoRA presence --------------------- */
 
 /** Collect every LoRA filename a server advertises in /object_info (scoped or full). */
