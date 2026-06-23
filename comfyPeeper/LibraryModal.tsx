@@ -8,6 +8,7 @@ import { Button, Modal, NavigationRouter, openModal, React, showToast, Toasts, u
 
 import { NodeIcon } from "./icons";
 import { backupEntry, canBackup, ConflictResolve, countConflicts, exportLibrary, getLibrary, importLibrary, parseLibraryFile, removeEntry, SavedWf } from "./library";
+import { openRepostPicker } from "./repost";
 import { openWorkflowModal } from "./WorkflowModal";
 
 function bucketLabel(ts: number): string {
@@ -108,6 +109,9 @@ function Card({ e, onDelete, onChanged, close }: { e: SavedWf; onDelete: () => v
             <div className="cwg-lib-actions">
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={open}>Open</Button>
                 {e.messageLink && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={post}>Post</Button>}
+                {(e.localPath || e.mediaIsVideo || e.thumb) && (
+                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => openRepostPicker(e.sourceUrl || "", undefined, e.localPath)}>↪ Repost</Button>
+                )}
                 {!e.localPath && canBackup(e) && (
                     <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} disabled={backing} onClick={doBackup}>
                         {backing ? "Backing…" : "💾 Backup"}

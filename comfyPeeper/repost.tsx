@@ -26,7 +26,7 @@ import { kindOf, logger, Native } from "./utils";
 
 const CloudUpload: typeof TCloudUpload = findLazy(m => m.prototype?.trackUploadFinished);
 
-interface Media { url: string; filename: string; }
+interface Media { url: string; filename: string; localPath?: string; }
 interface Target { id: string; label: string; guildId?: string; }
 
 const extOf = (name: string) => (/\.([a-z0-9]{2,5})(?:$|[?#])/i.exec(name)?.[1] || "png").toLowerCase();
@@ -41,8 +41,10 @@ function mimeOf(name: string): string {
         default: return "image/png";
     }
 }
-function filenameFromUrl(url: string): string {
-    try { const n = new URL(url).pathname.split("/").pop(); if (n) return decodeURIComponent(n); } catch { /* not a URL */ }
+function filenameFromUrl(s: string): string {
+    if (!s) return "image.png";
+    const name = s.split(/[?#]/)[0].split(/[\\/]/).pop(); // handles URLs and local file paths
+    if (name) { try { return decodeURIComponent(name); } catch { return name; } }
     return "image.png";
 }
 export const channelIdOf = (s: string) => (/channels\/\d+\/(\d+)/.exec(s) ?? /(?:^|\D)(\d{17,21})(?:\D|$)/.exec(s))?.[1];
@@ -59,9 +61,17 @@ export function parseRepostTargets(raw: string): Target[] {
 }
 
 async function fetchFile(media: Media): Promise<File | null> {
-    const r = await Native.fetchBytes(media.url, 100 * 1024 * 1024).catch(() => null);
-    if (!r?.ok || !r.base64) return null;
-    const bin = atob(r.base64);
+    let base64: string | undefined;
+    if (media.localPath) { // prefer the local backup (full-res, survives CDN expiry)
+        const r = await Native.readMediaFile(media.localPath).catch(() => null);
+        if (r?.ok && r.base64) base64 = r.base64;
+    }
+    if (!base64 && media.url) {
+        const r = await Native.fetchBytes(media.url, 100 * 1024 * 1024).catch(() => null);
+        if (r?.ok && r.base64) base64 = r.base64;
+    }
+    if (!base64) return null;
+    const bin = atob(base64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     return new File([bytes], media.filename, { type: mimeOf(media.filename) });
@@ -163,8 +173,8 @@ function RepostPicker({ rootProps, media }: { rootProps: any; media: Media; }) {
 /* ------------------------------- menu wiring ------------------------------- */
 
 /** Open the repost picker for a media url (used by the right-click menu and the drop inbox). */
-export const openRepostPicker = (url: string, filename?: string) =>
-    openModal(rp => <RepostPicker rootProps={rp} media={{ url, filename: filename || filenameFromUrl(url) }} />);
+export const openRepostPicker = (url: string, filename?: string, localPath?: string) =>
+    openModal(rp => <RepostPicker rootProps={rp} media={{ url, filename: filename || filenameFromUrl(localPath || url), localPath }} />);
 
 const isMedia = (a: any) => { const k = kindOf(a); return k === "png" || k === "webp" || k === "video"; };
 
