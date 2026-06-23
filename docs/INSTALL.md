@@ -33,11 +33,13 @@ source** — the one-click installer build cannot load them. Pick your client be
    ```bash
    git clone https://github.com/Vendicated/Vencord ~/Vencord
    cd ~/Vencord
-   pnpm install
+   pnpm install --frozen-lockfile
    ```
 2. **Add the plugin:**
    ```bash
-   cp -r /path/to/Discord-ComfyPeeper/comfyPeeper ~/Vencord/src/userplugins/
+   mkdir -p ~/Vencord/src/userplugins
+   rm -rf ~/Vencord/src/userplugins/comfyPeeper
+   cp -r /path/to/Discord-ComfyPeeper/comfyPeeper ~/Vencord/src/userplugins/comfyPeeper
    ```
 3. **Build & inject:**
    ```bash
@@ -74,8 +76,11 @@ reopen it. Enable **ComfyPeeper** in Settings → Plugins.
 ```bash
 # 1. a from-source Vencord with the plugin
 git clone https://github.com/Vendicated/Vencord ~/Vencord
-cd ~/Vencord && pnpm install
-cp -r /path/to/Discord-ComfyPeeper/comfyPeeper src/userplugins/
+cd ~/Vencord
+pnpm install --frozen-lockfile
+mkdir -p src/userplugins
+rm -rf src/userplugins/comfyPeeper
+cp -r /path/to/Discord-ComfyPeeper/comfyPeeper src/userplugins/comfyPeeper
 pnpm build
 
 # 2. copy the built files into the dir Vesktop loads
@@ -132,7 +137,12 @@ After pulling new changes to this repo (or to Vencord):
 
 ```bash
 # Vencord desktop
-cp -r comfyPeeper ~/Vencord/src/userplugins/ && cd ~/Vencord && pnpm build && pnpm inject
+mkdir -p ~/Vencord/src/userplugins
+rm -rf ~/Vencord/src/userplugins/comfyPeeper
+cp -r comfyPeeper ~/Vencord/src/userplugins/comfyPeeper
+cd ~/Vencord
+pnpm build
+pnpm inject
 
 # Vesktop
 VENCORD_DIR=~/Vencord ./scripts/install-vesktop.sh   # then quit + reopen Vesktop
@@ -156,7 +166,7 @@ re-run the Vesktop step.
 
 | symptom | fix |
 |---|---|
-| Plugin not in the list | You're on the installer build, not a source build — rebuild from source. On Vesktop, confirm the files landed in `~/.config/vesktop/sessionData/vencordFiles/`. |
+| Plugin not in the list | You're on the installer build, not a source build — rebuild from source. Confirm `~/Vencord/src/userplugins/comfyPeeper/index.tsx` exists before building. On Vesktop, also confirm the files landed in `~/.config/vesktop/sessionData/vencordFiles/`. |
 | Badge never appears | Enable **MessageAccessoriesAPI** (auto-enabled). Image must be an original-quality attachment (re-compressed media loses metadata). Try `autoScan` on. |
 | Overlay badge not on the image | Set **badgeMode → Below the message** (overlay relies on Discord's DOM layout). |
 | Queue says "missing nodes" | The server lacks those custom nodes — install them or use **Check servers** to pick one that has them. |

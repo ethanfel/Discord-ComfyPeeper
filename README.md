@@ -79,11 +79,20 @@ metadata).
 > ignores the custom-Vencord setting and needs an extra step), or the
 > **[Windows guide → docs/INSTALL-WINDOWS.md](docs/INSTALL-WINDOWS.md)** for PowerShell steps.
 
+**Windows helper:**
+
+```powershell
+cd "$env:USERPROFILE\Discord-ComfyPeeper"
+powershell -ExecutionPolicy Bypass -File .\scripts\install-windows.ps1
+```
+
 **Quick version (a from-source Vencord):**
 
 ```bash
 git clone https://github.com/ethanfel/Discord-ComfyPeeper
-cp -r Discord-ComfyPeeper/comfyPeeper <Vencord>/src/userplugins/
+mkdir -p <Vencord>/src/userplugins
+rm -rf <Vencord>/src/userplugins/comfyPeeper
+cp -r Discord-ComfyPeeper/comfyPeeper <Vencord>/src/userplugins/comfyPeeper
 cd <Vencord> && pnpm build && pnpm inject   # inject only if not already injected
 # restart Discord → Settings → Plugins → enable "ComfyPeeper"
 ```
