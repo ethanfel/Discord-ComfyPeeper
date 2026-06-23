@@ -75,8 +75,9 @@ metadata).
 ## 🚀 Install
 
 > Custom plugins require a **Vencord built from source** — the official installer build can't load
-> user-plugins. Vesktop users: see the **[full install guide → docs/INSTALL.md](docs/INSTALL.md)**
-> (Vesktop ignores the custom-Vencord setting and needs an extra step).
+> user-plugins. See the **[full install guide → docs/INSTALL.md](docs/INSTALL.md)** (Vesktop
+> ignores the custom-Vencord setting and needs an extra step), or the
+> **[Windows guide → docs/INSTALL-WINDOWS.md](docs/INSTALL-WINDOWS.md)** for PowerShell steps.
 
 **Quick version (a from-source Vencord):**
 

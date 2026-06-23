@@ -3,6 +3,9 @@
 ComfyPeeper is a **Vencord user-plugin**. User-plugins only work in a **Vencord built from
 source** — the one-click installer build cannot load them. Pick your client below.
 
+> **On Windows?** Use the **[Windows install guide → INSTALL-WINDOWS.md](INSTALL-WINDOWS.md)**
+> (PowerShell commands + Windows paths). The steps below assume Linux/macOS.
+
 - [Prerequisites](#prerequisites)
 - [Vencord (Discord desktop)](#vencord-discord-desktop)
 - [Vesktop](#vesktop)
