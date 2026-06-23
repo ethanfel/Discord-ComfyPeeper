@@ -14,3 +14,7 @@ dist/
 
 # companion local config (holds the Discord webhook secret)
 comfyui-companion/config.json
+
+# python bytecode
+__pycache__/
+*.pyc
