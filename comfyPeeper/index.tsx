@@ -227,6 +227,16 @@ function Accessory({ message }: { message: any; }) {
 
     const messageLink = messageLinkOf(message);
     const chan = channelMetaOf(message);
+
+    // auto-associate: if a post has exactly one image/video, link it to the workflow(s) posted
+    // alongside as a .json file or pasted JSON (so the preview shows it and Save grabs its frame)
+    const mediaAtts = atts.filter(({ kind }: any) => kind !== "json");
+    const soleMedia = mediaAtts.length === 1 ? mediaAtts[0] : null;
+    const siblingMedia = soleMedia ? { mediaUrl: soleMedia.a.url, mediaIsVideo: soleMedia.kind === "video" } : {};
+    // a media attachment is its own preview; a .json/text workflow borrows the sole sibling media
+    const mediaFor = (a: any, kind: string) =>
+        kind === "json" ? siblingMedia : { mediaUrl: a.url, mediaIsVideo: kind === "video" };
+
     return (
         <>
             {atts
@@ -237,14 +247,14 @@ function Accessory({ message }: { message: any; }) {
                         att={a}
                         kind={kind}
                         metaAtts={sidecarsFor(a, kind)}
-                        source={{ messageId: message.id, messageLink, ...chan, sourceUrl: a.url, isImage: kind === "png" || kind === "webp" }}
+                        source={{ messageId: message.id, messageLink, ...chan, sourceUrl: a.url, isImage: kind === "png" || kind === "webp", ...mediaFor(a, kind) }}
                     />
                 ))}
             {textGraph && (
                 <BadgePill
                     att={{ id: `txt-${message.id}`, filename: "pasted-workflow.json", content_type: "application/json" }}
                     meta={textGraph}
-                    source={{ messageId: message.id, messageLink, ...chan }}
+                    source={{ messageId: message.id, messageLink, ...chan, ...siblingMedia }}
                 />
             )}
         </>

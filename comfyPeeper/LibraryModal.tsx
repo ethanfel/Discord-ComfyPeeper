@@ -7,7 +7,7 @@
 import { Button, Modal, NavigationRouter, openModal, React, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
-import { ConflictResolve, countConflicts, exportLibrary, getLibrary, importLibrary, parseLibraryFile, removeEntry, SavedWf } from "./library";
+import { backupEntry, canBackup, ConflictResolve, countConflicts, exportLibrary, getLibrary, importLibrary, parseLibraryFile, removeEntry, SavedWf } from "./library";
 import { openWorkflowModal } from "./WorkflowModal";
 
 function bucketLabel(ts: number): string {
@@ -63,10 +63,14 @@ function openSaved(e: SavedWf) {
         content_type: e.mediaIsVideo ? "video/mp4" : (e.thumb ? "image/webp" : "application/json"),
         url: e.mediaIsVideo ? (e.sourceUrl || e.thumb) : (e.thumb || e.sourceUrl)
     };
+    const hasMedia = !!e.mediaIsVideo || !!e.thumb;
     openWorkflowModal(
         att,
         { ok: true, kind: e.kind as any, workflow: e.workflow, prompt: e.prompt },
-        { id: e.id, messageLink: e.messageLink, sourceUrl: e.sourceUrl, channelId: e.channelId, channelName: e.channelName }
+        {
+            id: e.id, messageLink: e.messageLink, sourceUrl: e.sourceUrl, channelId: e.channelId, channelName: e.channelName,
+            mediaUrl: hasMedia ? e.sourceUrl : undefined, mediaIsVideo: e.mediaIsVideo, localPath: e.localPath
+        }
     );
 }
 
@@ -76,9 +80,18 @@ function jump(link?: string) {
     catch { /* ignore bad link */ }
 }
 
-function Card({ e, onDelete, close }: { e: SavedWf; onDelete: () => void; close: () => void; }) {
+function Card({ e, onDelete, onChanged, close }: { e: SavedWf; onDelete: () => void; onChanged: () => void; close: () => void; }) {
+    const [backing, setBacking] = useState(false);
     const open = () => { close(); openSaved(e); };
     const post = () => { close(); jump(e.messageLink); };
+    const doBackup = async () => {
+        setBacking(true);
+        showToast("Backing up locally…", Toasts.Type.MESSAGE);
+        const r = await backupEntry(e);
+        setBacking(false);
+        if (r.ok) { showToast("Backed up locally ✓", Toasts.Type.SUCCESS); onChanged(); }
+        else showToast(`Backup failed: ${r.error || "error"}`, Toasts.Type.FAILURE);
+    };
     return (
         <div className="cwg-lib-card">
             <div className="cwg-lib-thumb" onClick={open} title="Open preview">
@@ -86,6 +99,7 @@ function Card({ e, onDelete, close }: { e: SavedWf; onDelete: () => void; close:
                     ? <img src={e.thumb} alt={e.title} />
                     : <div className="cwg-lib-noimg"><NodeIcon size={30} /></div>}
                 <span className="cwg-lib-kind">{e.kind}</span>
+                {e.localPath && <span className="cwg-lib-saved" title={"Backed up locally: " + e.localPath}>💾</span>}
             </div>
             <div className="cwg-lib-body">
                 <div className="cwg-lib-title" title={e.title}>{e.title}</div>
@@ -94,6 +108,11 @@ function Card({ e, onDelete, close }: { e: SavedWf; onDelete: () => void; close:
             <div className="cwg-lib-actions">
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={open}>Open</Button>
                 {e.messageLink && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={post}>Post</Button>}
+                {!e.localPath && canBackup(e) && (
+                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} disabled={backing} onClick={doBackup}>
+                        {backing ? "Backing…" : "💾 Backup"}
+                    </Button>
+                )}
                 <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={onDelete}>Delete</Button>
             </div>
         </div>
@@ -230,7 +249,7 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
                                             <div className="cwg-lib-chan-group" key={c.label}>
                                                 <div className="cwg-lib-chan"><span className="cwg-lib-chan-name">{c.label}</span><span className="cwg-lib-chan-count">{c.items.length}</span></div>
                                                 <div className="cwg-lib-grid">
-                                                    {c.items.map(e => <Card key={e.id} e={e} close={rootProps.onClose} onDelete={() => removeEntry(e.id).then(reload)} />)}
+                                                    {c.items.map(e => <Card key={e.id} e={e} close={rootProps.onClose} onChanged={reload} onDelete={() => removeEntry(e.id).then(reload)} />)}
                                                 </div>
                                             </div>
                                         ))}

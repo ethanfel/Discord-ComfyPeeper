@@ -169,6 +169,16 @@
     background: #000000a8;
     color: #d3d7de;
 }
+.cwg-lib-saved {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    font-size: 12px;
+    line-height: 1;
+    padding: 3px 5px;
+    border-radius: 7px;
+    background: #000000a8;
+}
 .cwg-lib-body { padding: 8px 10px 2px; }
 .cwg-lib-title { font-size: 12px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cwg-lib-date { font-size: 11px; color: #7c838f; margin-top: 2px; }

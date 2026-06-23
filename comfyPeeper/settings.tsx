@@ -23,6 +23,16 @@ export const settings = definePluginSettings({
         default: false,
         description: "Advanced mode: add a LoRAs tab to the previewer that checks a workflow's LoRAs against your ComfyUI server(s) and helps download missing ones (via ComfyUI-Lora-Manager when installed, plus Civitai/CivArchive search links)."
     },
+    backupDir: {
+        type: OptionType.STRING,
+        default: "",
+        description: "Local backup folder (desktop only). Set an absolute path here, then use the 💾 Backup button on a library card to save its media + workflow .json locally — so it survives the Discord post being deleted."
+    },
+    autoBackup: {
+        type: OptionType.BOOLEAN,
+        default: false,
+        description: "Automatically back up every media-bearing workflow to the backup folder the moment you save it. ⚠ Can clutter the folder fast — leave off and back up by hand unless you really want everything kept."
+    },
     yoink: {
         type: OptionType.BOOLEAN,
         default: false,

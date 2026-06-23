@@ -7,7 +7,7 @@
 import { Button, Modal, openModal, React, showToast, Toasts, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
-import { entryId, hasEntry, SaveSource, saveToLibrary } from "./library";
+import { entryId, hasEntry, loadLocalMediaUrl, SaveSource, saveToLibrary } from "./library";
 import { openLibraryModal } from "./LibraryModal";
 import { settings } from "./settings";
 import { checkLoras, checkServer, civArchiveSearchUrl, civitaiRedSearchUrl, civitaiSearchUrl, copyWithToast, downloadJson, Endpoint, extractLoras, extractParams, huggingFaceSearchUrl, LoraCheck, LoraRef, Native, parseCivitaiRef, parseEndpoints, queue, ServerCheck, WorkflowMeta } from "./utils";
@@ -191,9 +191,22 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
         setTab(nv.workflow ? "graph" : (nv.prompt ? "params" : "json"));
     };
     const base = (att.filename || "workflow").replace(/\.[^.]+$/, "");
-    const isVideo = (att.content_type || "").includes("video") || /\.(mp4|mov|m4v|webm|mkv)$/i.test(att.filename || "");
-    const isImage = (att.content_type || "").includes("image") || /\.(png|webp|jpe?g|gif)$/i.test(att.filename || "");
-    const showMedia = isImage || isVideo; // a .json attachment has nothing to preview
+    // prefer media associated to this workflow (e.g. the video posted alongside a .json), else the attachment itself
+    const mediaUrl = source?.mediaUrl || att.url;
+    const isVideo = source?.mediaUrl ? !!source.mediaIsVideo : ((att.content_type || "").includes("video") || /\.(mp4|mov|m4v|webm|mkv)$/i.test(att.filename || ""));
+    const isImage = source?.mediaUrl ? !source.mediaIsVideo : ((att.content_type || "").includes("image") || /\.(png|webp|jpe?g|gif)$/i.test(att.filename || ""));
+    const showMedia = isImage || isVideo; // a bare .json with no associated media has nothing to preview
+
+    // a local backup (desktop) survives the post being deleted — prefer it over the expiring CDN url
+    const [localSrc, setLocalSrc] = useState<string | undefined>(undefined);
+    useEffect(() => {
+        if (!source?.localPath) return;
+        let url: string | undefined;
+        let alive = true;
+        loadLocalMediaUrl(source.localPath, isVideo).then(u => { if (alive && u) { url = u; setLocalSrc(u); } });
+        return () => { alive = false; if (url) URL.revokeObjectURL(url); };
+    }, [source?.localPath]);
+    const mediaSrc = localSrc || mediaUrl;
 
     const runCheck = async () => {
         setChecking(true);
@@ -213,8 +226,8 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
                 {showMedia && (
                     <div className="cwg-modal-media">
                         {isVideo
-                            ? <video className="cwg-media" src={att.url} controls loop />
-                            : <img className="cwg-media" src={att.url} alt={att.filename} />}
+                            ? <video className="cwg-media" src={mediaSrc} controls loop />
+                            : <img className="cwg-media" src={mediaSrc} alt={att.filename} />}
                     </div>
                 )}
                 <div className="cwg-modal-panel">

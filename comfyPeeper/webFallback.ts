@@ -382,6 +382,14 @@ async function loraManagerDownload(endpoint: string, versionId: string, modelId?
     return last;
 }
 
+/* local backups need filesystem access — desktop only; these stubs keep the browser typed. */
+async function backupMedia(_url: string, _dir: string, _mediaFilename: string, _jsonFilename?: string, _jsonText?: string): Promise<{ ok: boolean; path?: string; error?: string; }> {
+    return { ok: false, error: "Local backups are desktop-only" };
+}
+async function readMediaFile(_filePath: string): Promise<{ ok: boolean; base64?: string; error?: string; }> {
+    return { ok: false, error: "Local backups are desktop-only" };
+}
+
 async function fetchBytes(url: string, maxBytes: number): Promise<{ ok: boolean; base64?: string; error?: string; }> {
     try {
         const res = await fetch(url);
@@ -397,4 +405,4 @@ async function fetchBytes(url: string, maxBytes: number): Promise<{ ok: boolean;
 }
 
 /** Drop-in replacement for VencordNative.pluginHelpers.ComfyPeeper when running in a browser. */
-export const webNative = { fetchWorkflow, queuePrompt, getMissingNodes, fetchBytes, getLoraInventory, loraManagerProbe, loraManagerDownload };
+export const webNative = { fetchWorkflow, queuePrompt, getMissingNodes, fetchBytes, getLoraInventory, loraManagerProbe, loraManagerDownload, backupMedia, readMediaFile };

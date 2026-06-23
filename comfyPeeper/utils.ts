@@ -22,6 +22,8 @@ const nativeImpl = (typeof VencordNative !== "undefined"
     ? (VencordNative as any)?.pluginHelpers?.ComfyPeeper
     : undefined) as PluginNative<typeof import("./native")> | undefined;
 export const Native = (nativeImpl ?? webNative) as PluginNative<typeof import("./native")>;
+/** True on desktop (Vesktop/Discord-desktop), where the native module can touch the filesystem. */
+export const isDesktop = !!nativeImpl;
 
 export { copyWithToast };
 

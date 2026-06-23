@@ -19,6 +19,8 @@
  */
 
 import type { IpcMainInvokeEvent } from "electron";
+import { mkdir, readFile, writeFile } from "fs/promises";
+import { join } from "path";
 import { inflateSync } from "zlib";
 
 const PNG_SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
@@ -535,6 +537,43 @@ export async function loraManagerDownload(
         }
     }
     return last;
+}
+
+/* ----------------------- local backups (desktop only) -------------------- */
+
+/** Download a media file (and optionally its workflow .json) into a local folder. */
+export async function backupMedia(
+    _: IpcMainInvokeEvent,
+    url: string,
+    dir: string,
+    mediaFilename: string,
+    jsonFilename?: string,
+    jsonText?: string
+): Promise<{ ok: boolean; path?: string; error?: string; }> {
+    try {
+        await mkdir(dir, { recursive: true });
+        const res = await fetch(url);
+        if (!res.ok) return { ok: false, error: `HTTP ${res.status}` };
+        const ab = await res.arrayBuffer();
+        const mediaPath = join(dir, mediaFilename);
+        await writeFile(mediaPath, Buffer.from(ab));
+        if (jsonFilename && jsonText) await writeFile(join(dir, jsonFilename), jsonText, "utf8");
+        return { ok: true, path: mediaPath };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
+}
+
+/** Read a locally-backed-up media file as base64 (so the renderer can show it via a blob). */
+export async function readMediaFile(
+    _: IpcMainInvokeEvent,
+    filePath: string
+): Promise<{ ok: boolean; base64?: string; error?: string; }> {
+    try {
+        return { ok: true, base64: (await readFile(filePath)).toString("base64") };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
 }
 
 /** Fetch raw bytes (base64) — used to make a local thumbnail that survives post deletion. */
