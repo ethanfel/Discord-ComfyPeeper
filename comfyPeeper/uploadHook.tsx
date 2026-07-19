@@ -6,9 +6,9 @@
 
 import { MessageObject, MessageSendListener } from "@api/MessageEvents";
 import { CloudUpload as TCloudUpload } from "@vencord/discord-types";
-import { CloudUploadPlatform } from "@vencord/discord-types/enums";
+import { CloudUploadPlatform, DraftType } from "@vencord/discord-types/enums";
 import { findLazy } from "@webpack";
-import { Button, Modal, openModal, React, showToast, Toasts, useState } from "@webpack/common";
+import { Button, Modal, openModal, React, showToast, Toasts, UploadAttachmentStore, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { settings } from "./settings";
@@ -133,7 +133,7 @@ function askWhichToAttach(candidates: Candidate[]): Promise<Candidate[]> {
 
 /** Attach one .json sidecar per embedded workflow so the whole chain survives stripping.
  *  Names: "<base>.workflow.json" (primary), then "<base>.workflow2.json", "<base>.workflow3.json", … */
-async function attachWorkflows(channelId: string, options: any, c: Candidate): Promise<number> {
+async function attachWorkflows(channelId: string, uploads: TCloudUpload[], c: Candidate): Promise<number> {
     let done = 0;
     for (let i = 0; i < c.contents.length; i++) {
         const name = i === 0 ? `${c.base}.workflow.json` : `${c.base}.workflow${i + 1}.json`;
@@ -144,18 +144,18 @@ async function attachWorkflows(channelId: string, options: any, c: Candidate): P
             up.on("error", () => rej(new Error("upload failed")));
             up.upload();
         });
-        (options.uploads ??= []).push(up);
+        uploads.push(up);
         done++;
     }
     return done;
 }
 
 /** Before sending: if any uploaded video carries a ComfyUI workflow, attach it as a .json sidecar. */
-export const onBeforeMessageSend: MessageSendListener = async (channelId, _msg: MessageObject, options) => {
+export const onBeforeMessageSend: MessageSendListener = async (channelId, _msg: MessageObject) => {
     try {
         if (!settings.store.attachWorkflowOnUpload) return;
-        const uploads = options?.uploads;
-        if (!uploads?.length) return;
+        const uploads = UploadAttachmentStore.getUploads(channelId, DraftType.ChannelMessage);
+        if (!uploads.length) return;
 
         const candidates = await findWorkflowVideos(uploads);
         if (!candidates.length) return;
@@ -165,7 +165,7 @@ export const onBeforeMessageSend: MessageSendListener = async (channelId, _msg: 
 
         let done = 0;
         for (const c of chosen) {
-            try { done += await attachWorkflows(channelId, options, c); }
+            try { done += await attachWorkflows(channelId, uploads, c); }
             catch (e) { logger.error("attach workflow failed for " + c.videoName, e); }
         }
         if (done) showToast(`Attached ${done} workflow .json${done > 1 ? "s" : ""}`, Toasts.Type.SUCCESS);
