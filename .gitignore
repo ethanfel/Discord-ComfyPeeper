@@ -17,3 +17,9 @@ dist/
 # python bytecode
 __pycache__/
 *.pyc
+
+# Installer packaging and bundled release artifacts
+build/
+payload/
+.venv-installer/
+*.spec

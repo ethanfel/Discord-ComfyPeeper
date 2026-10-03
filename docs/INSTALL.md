@@ -1,5 +1,9 @@
 # Install guide
 
+> **Recommended for Windows and Linux:** use the [graphical Vesktop installer](EASY-INSTALL.md).
+> It installs a prebuilt Peeper bundle without developer tools. The instructions below
+> describe the advanced source-build route for custom plugins, standard Discord, and browsers.
+
 ComfyPeeper is a **Vencord user-plugin**. User-plugins only work in a **Vencord built from
 source** — the one-click Vencord installer build cannot load them. You do **not** build Discord
 or Vesktop from source: regular installed Discord/Vesktop are the hosts, and the source build is

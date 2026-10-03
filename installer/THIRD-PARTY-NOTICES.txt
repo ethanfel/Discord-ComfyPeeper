@@ -1,0 +1,21 @@
+ComfyPeeper Installer
+Copyright 2026 ComfyPeeper contributors. GPL-3.0-or-later.
+https://github.com/ethanfel/Discord-ComfyPeeper
+
+The release includes a modified Vencord build containing ComfyPeeper:
+Vencord, copyright Vendicated and contributors, GPL-3.0-or-later.
+https://github.com/Vendicated/Vencord
+Its license and bundled JavaScript dependency notices are inside the payload.
+Complete corresponding source accompanies each release as ComfyPeeper-Source.tar.gz.
+
+The standalone installer includes:
+- CPython, Python Software Foundation License: https://docs.python.org/3/license.html
+- Tcl/Tk, BSD-style license: https://www.tcl-lang.org/software/tcltk/license.html
+- psutil, BSD-3-Clause: https://github.com/giampaolo/psutil/blob/master/LICENSE
+- certifi / Mozilla CA bundle, MPL-2.0: https://github.com/certifi/python-certifi/blob/master/LICENSE
+- PyInstaller bootloader, GPL-2.0-or-later with bootloader exception:
+  https://github.com/pyinstaller/pyinstaller/blob/develop/COPYING.txt
+
+The packaged runtime also retains its included license files. See the source
+release and installer/requirements.txt for the pinned build dependencies.
+No warranty is provided. ComfyPeeper is not affiliated with Discord or ComfyUI.

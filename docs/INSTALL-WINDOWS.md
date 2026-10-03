@@ -1,5 +1,9 @@
 # Install guide (Windows)
 
+> **Recommended:** [download the Windows graphical installer](EASY-INSTALL.md).
+> Open the `.exe`, select Vesktop, and click **Install Peeper**. No PowerShell or
+> developer tools are needed. The steps below are the advanced source-build route.
+
 ComfyPeeper is a **Vencord user-plugin**. User-plugins only load in a **Vencord built from
 source** — the one-click Vencord installer build can't run them. You do **not** build Discord or
 Vesktop from source: regular installed Discord/Vesktop are the hosts, and the source build is only

@@ -4,6 +4,11 @@
 
 # Discord-ComfyPeeper
 
+**Easy install for Windows and Linux:** [Download the graphical installer](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest) · [Quick setup guide](docs/EASY-INSTALL.md)
+
+Use Vesktop, open the installer, and click **Install Peeper**. No Git, Node, pnpm,
+or Python required. Updates, repair, rollback, and removal are built in.
+
 **Reveal & run the ComfyUI workflow hidden inside any Discord image, video, or animation.**
 
 A [Vencord](https://vencord.dev) user-plugin that detects ComfyUI metadata embedded in Discord

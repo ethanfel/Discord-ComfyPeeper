@@ -1,0 +1,30 @@
+ComfyPeeper for Vesktop
+
+1. Install Vesktop from https://vesktop.dev/ if you do not already use it.
+2. Open Vesktop once, then quit it using its tray icon.
+3. Open ComfyPeeper-Installer in this folder and click Install Peeper.
+4. Open Vesktop. Peeper is already enabled.
+
+No Python, Node, Git, pnpm, terminal commands, or administrator access required.
+Keep the installer to update, repair, roll back, or remove Peeper later.
+
+Linux: extract the whole archive before launching. The executable permission
+is preserved in the archive. If your file manager asks, choose Run/Execute.
+On file systems that discard executable permissions, enable "Allow executing
+file as program" in the file's Properties > Permissions.
+
+Supports 64-bit Windows 10/11 and x86-64 Linux with glibc 2.35+ (Ubuntu 22.04+,
+Debian 12+, Fedora, Arch). Linux needs a graphical desktop with X11/XWayland.
+Vesktop 1.6.7 or newer is recommended. Native, Flatpak and portable profiles
+are detected; Browse can select an unlisted profile.
+
+The easy installer targets Vesktop. The normal Discord app and browser
+userscript retain their source-build installation guides.
+
+This release includes Peeper plus Vencord's standard plugins. Additional
+custom plugins are not bundled. Your previous build can be restored with
+Remove; your login, saved workflow library and plugin settings are kept.
+
+Help: https://github.com/ethanfel/Discord-ComfyPeeper/blob/main/docs/EASY-INSTALL.md
+Source and releases: https://github.com/ethanfel/Discord-ComfyPeeper/releases
+License: GPL-3.0-or-later. This software comes without warranty.

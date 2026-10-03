@@ -1,0 +1,138 @@
+name: Build Peeper installers
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'installer/**'
+      - 'comfyPeeper/**'
+      - 'scripts/package-*.py'
+      - '.github/workflows/installer.yml'
+  pull_request:
+    paths: ['installer/**', 'comfyPeeper/**', 'scripts/package-*.py', '.github/workflows/installer.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installer-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Fetch the tested Vencord revision
+        shell: bash
+        run: |
+          VENCORD_REVISION=$(node -p "require('./installer/release.json').vencord_commit")
+          git init build/vencord
+          git -C build/vencord remote add origin https://github.com/Vendicated/Vencord.git
+          git -C build/vencord fetch --depth=1 origin "$VENCORD_REVISION"
+          git -C build/vencord checkout --detach FETCH_HEAD
+          mkdir -p build/vencord/src/userplugins
+          cp -R comfyPeeper build/vencord/src/userplugins/comfyPeeper
+      - name: Set up the pinned package manager
+        working-directory: build/vencord
+        run: |
+          corepack enable
+          corepack install
+          pnpm install --frozen-lockfile
+      - name: Verify and build the universal Peeper bundle
+        working-directory: build/vencord
+        run: |
+          pnpm testTsc
+          pnpm exec eslint src/userplugins/comfyPeeper
+          pnpm build --standalone --disable-updater
+      - name: Package bundle and corresponding source
+        run: python scripts/package-peeper-bundle.py --vencord build/vencord
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: peeper-bundle
+          path: payload/*
+          if-no-files-found: error
+
+  installer:
+    needs: bundle
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, windows-2022]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: peeper-bundle
+          path: payload
+      - name: Install packaging dependencies
+        run: python -m pip install -r installer/requirements.txt
+      - name: Install Linux UI runtime for packaging and tests
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtk8.6 xvfb
+      - name: Run installer lifecycle and recovery tests
+        run: python -m unittest discover -s installer/tests -v
+      - name: Keep the installer payload small
+        shell: python
+        run: |
+          from pathlib import Path
+          Path('payload/ComfyPeeper-Source.tar.gz').unlink()
+      - name: Build standalone installer
+        run: python scripts/package-installer.py
+      - name: Test the Linux executable and UI
+        if: runner.os == 'Linux'
+        run: xvfb-run -a dist/ComfyPeeper-Installer --self-test --test-output dist/smoke-test.txt
+      - name: Test the Windows executable and UI
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $app = Start-Process -FilePath ./dist/ComfyPeeper-Setup-Windows-x64.exe -ArgumentList '--self-test', '--test-output', 'dist/smoke-test.txt' -Wait -PassThru
+          if ($app.ExitCode -ne 0) { throw "Installer smoke test failed: $($app.ExitCode)" }
+          if (-not (Test-Path dist/smoke-test.txt)) { throw 'Smoke test did not produce a result' }
+          Get-Content dist/smoke-test.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: installer-${{ runner.os }}
+          path: |
+            dist/ComfyPeeper-Setup-*
+            dist/THIRD-PARTY-NOTICES.txt
+            dist/smoke-test.txt
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [bundle, installer]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Check release version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python -c "import json, os; assert os.environ['RELEASE_TAG'] == 'v' + json.load(open('installer/release.json'))['version']"
+      - name: Publish tested installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" --verify-tag --title "ComfyPeeper $RELEASE_TAG" --notes-file installer/RELEASE-NOTES.md release-assets/ComfyPeeper-* release-assets/THIRD-PARTY-NOTICES.txt
