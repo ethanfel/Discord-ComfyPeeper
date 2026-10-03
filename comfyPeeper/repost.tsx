@@ -18,7 +18,7 @@ import { NavContextMenuPatchCallback } from "@api/ContextMenu";
 import { CloudUpload as TCloudUpload } from "@vencord/discord-types";
 import { CloudUploadPlatform } from "@vencord/discord-types/enums";
 import { findLazy } from "@webpack";
-import { ChannelStore, Constants, GuildChannelStore, GuildStore, Menu, Modal, openModal, PermissionsBits, PermissionStore, React, RestAPI, showToast, SnowflakeUtils, Toasts, useState } from "@webpack/common";
+import { ChannelStore, Constants, GuildChannelStore, GuildStore, Menu, Modal, openModal, PermissionsBits, PermissionStore, React, RestAPI, showToast, SnowflakeUtils, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { settings } from "./settings";
@@ -79,9 +79,9 @@ async function fetchFile(media: Media): Promise<File | null> {
 
 /** Re-upload the media to a target channel as a fresh message. */
 export async function repost(channelId: string, label: string, media: Media) {
-    showToast(`Reposting to ${label}…`, Toasts.Type.MESSAGE);
+    showToast(`Reposting to ${label}…`, "message");
     const file = await fetchFile(media);
-    if (!file) { showToast("Couldn't fetch that image", Toasts.Type.FAILURE); return; }
+    if (!file) { showToast("Couldn't fetch that image", "failure"); return; }
     try {
         const upload = new CloudUpload({ file, isThumbnail: false, platform: CloudUploadPlatform.WEB }, channelId);
         upload.on("complete", () => {
@@ -96,15 +96,15 @@ export async function repost(channelId: string, label: string, media: Media) {
                     attachments: [{ id: "0", filename: upload.filename, uploaded_filename: upload.uploadedFilename }]
                 }
             }).then(
-                () => showToast(`Reposted to ${label} ✓`, Toasts.Type.SUCCESS),
-                (e: any) => showToast(`${label} rejected it (${e?.status || "error"})`, Toasts.Type.FAILURE)
+                () => showToast(`Reposted to ${label} ✓`, "success"),
+                (e: any) => showToast(`${label} rejected it (${e?.status || "error"})`, "failure")
             );
         });
-        upload.on("error", () => showToast("Upload failed", Toasts.Type.FAILURE));
+        upload.on("error", () => showToast("Upload failed", "failure"));
         upload.upload();
     } catch (e) {
         logger.error("repost failed", e);
-        showToast("Repost failed", Toasts.Type.FAILURE);
+        showToast("Repost failed", "failure");
     }
 }
 
@@ -207,7 +207,7 @@ export const channelRepostFavPatch: NavContextMenuPatchCallback = (children, pro
             label={isFav ? "Remove from ComfyPeeper favourites" : "Add to ComfyPeeper favourites"}
             action={() => {
                 toggleFavorite({ id: ch.id, label: "#" + (ch.name || ch.id), guildId: ch.guild_id });
-                showToast(isFav ? "Removed from repost favourites" : "Added to repost favourites ★", Toasts.Type.SUCCESS);
+                showToast(isFav ? "Removed from repost favourites" : "Added to repost favourites ★", "success");
             }}
         />
     );

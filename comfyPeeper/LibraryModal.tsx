@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Modal, NavigationRouter, openModal, React, showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { Button, Modal, NavigationRouter, openModal, React, showToast, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { backupEntry, canBackup, ConflictResolve, countConflicts, exportLibrary, getLibrary, importLibrary, parseLibraryFile, removeEntry, SavedWf } from "./library";
@@ -87,11 +87,11 @@ function Card({ e, onDelete, onChanged, close }: { e: SavedWf; onDelete: () => v
     const post = () => { close(); jump(e.messageLink); };
     const doBackup = async () => {
         setBacking(true);
-        showToast("Backing up locally…", Toasts.Type.MESSAGE);
+        showToast("Backing up locally…", "message");
         const r = await backupEntry(e);
         setBacking(false);
-        if (r.ok) { showToast("Backed up locally ✓", Toasts.Type.SUCCESS); onChanged(); }
-        else showToast(`Backup failed: ${r.error || "error"}`, Toasts.Type.FAILURE);
+        if (r.ok) { showToast("Backed up locally ✓", "success"); onChanged(); }
+        else showToast(`Backup failed: ${r.error || "error"}`, "failure");
     };
     return (
         <div className="cwg-lib-card">
@@ -170,8 +170,8 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
     const doExport = async () => {
         try {
             const n = await exportLibrary();
-            showToast(`Exported ${n} workflow${n === 1 ? "" : "s"}`, Toasts.Type.SUCCESS);
-        } catch { showToast("Export failed", Toasts.Type.FAILURE); }
+            showToast(`Exported ${n} workflow${n === 1 ? "" : "s"}`, "success");
+        } catch { showToast("Export failed", "failure"); }
     };
     const onFile = async (ev: React.ChangeEvent<HTMLInputElement>) => {
         const file = ev.currentTarget.files?.[0];
@@ -179,8 +179,8 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
         if (!file) return;
         let entries;
         try { entries = parseLibraryFile(await file.text()); }
-        catch { showToast("Not a valid ComfyPeeper library file", Toasts.Type.FAILURE); return; }
-        if (!entries.length) { showToast("No workflows found in that file", Toasts.Type.FAILURE); return; }
+        catch { showToast("Not a valid ComfyPeeper library file", "failure"); return; }
+        if (!entries.length) { showToast("No workflows found in that file", "failure"); return; }
         const conflicts = await countConflicts(entries);
         openModal(rp => (
             <ImportDialog
@@ -190,7 +190,7 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
                 onConfirm={async resolve => {
                     const r = await importLibrary(entries, resolve);
                     reload();
-                    showToast(`Imported: ${r.added} new, ${r.updated} updated, ${r.skipped} skipped`, Toasts.Type.SUCCESS);
+                    showToast(`Imported: ${r.added} new, ${r.updated} updated, ${r.skipped} skipped`, "success");
                 }}
             />
         ));

@@ -8,7 +8,7 @@ import { MessageObject, MessageSendListener } from "@api/MessageEvents";
 import { CloudUpload as TCloudUpload } from "@vencord/discord-types";
 import { CloudUploadPlatform, DraftType } from "@vencord/discord-types/enums";
 import { findLazy } from "@webpack";
-import { Button, Modal, openModal, React, showToast, Toasts, UploadAttachmentStore, useState } from "@webpack/common";
+import { Button, Modal, openModal, React, showToast, UploadAttachmentStore, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { settings } from "./settings";
@@ -168,7 +168,7 @@ export const onBeforeMessageSend: MessageSendListener = async (channelId, _msg: 
             try { done += await attachWorkflows(channelId, uploads, c); }
             catch (e) { logger.error("attach workflow failed for " + c.videoName, e); }
         }
-        if (done) showToast(`Attached ${done} workflow .json${done > 1 ? "s" : ""}`, Toasts.Type.SUCCESS);
+        if (done) showToast(`Attached ${done} workflow .json${done > 1 ? "s" : ""}`, "success");
     } catch (e) {
         logger.error("onBeforeMessageSend error", e); // never block the send
     }

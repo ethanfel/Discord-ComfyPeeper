@@ -15,7 +15,7 @@
  */
 
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
-import { Alerts, Menu, Modal, openModal, React, showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { Alerts, Menu, Modal, openModal, React, showToast, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { getLibrary, makeMediaThumb, recentEntries, SavedWf, setEntryMedia } from "./library";
@@ -28,11 +28,11 @@ const isMedia = (a: any) => { const k = kindOf(a); return k === "png" || k === "
 const mediaOf = (a: any): Media => ({ url: a.url, isVideo: kindOf(a) === "video", filename: a.filename });
 
 async function doAssociate(entry: SavedWf, media: Media) {
-    showToast(`Linking media to “${truncate(entry.title)}”…`, Toasts.Type.MESSAGE);
+    showToast(`Linking media to “${truncate(entry.title)}”…`, "message");
     const thumb = await makeMediaThumb(media.url, media.isVideo);
     await setEntryMedia(entry.id, { thumb, sourceUrl: media.url, isVideo: media.isVideo });
     showToast(thumb ? `Linked ✓ — “${truncate(entry.title)}”` : `Linked (preview unavailable) — “${truncate(entry.title)}”`,
-        thumb ? Toasts.Type.SUCCESS : Toasts.Type.MESSAGE);
+        thumb ? "success" : "message");
 }
 
 /** Associate, warning first if the target already has a preview. */

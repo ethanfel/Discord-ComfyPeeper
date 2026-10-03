@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Modal, openModal, React, showToast, Toasts, useEffect, useState } from "@webpack/common";
+import { Button, Modal, openModal, React, showToast, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { entryId, hasEntry, loadLocalMediaUrl, SaveSource, saveToLibrary } from "./library";
@@ -90,12 +90,12 @@ function DownloadRow({ target }: { target: Endpoint; }) {
     const [busy, setBusy] = useState(false);
     const go = async () => {
         const ref = parseCivitaiRef(url);
-        if (!ref.versionId && !ref.modelId) { showToast("Paste a Civitai model/version URL or id", Toasts.Type.FAILURE); return; }
+        if (!ref.versionId && !ref.modelId) { showToast("Paste a Civitai model/version URL or id", "failure"); return; }
         setBusy(true);
         try {
             const r = await Native.loraManagerDownload(target.url, ref.versionId ?? "", ref.modelId, ref.source);
-            if (r.ok) showToast(`Downloading on ${target.label} — re-check in a moment`, Toasts.Type.SUCCESS);
-            else showToast(`Download failed: ${(r.data || "").slice(0, 160) || `HTTP ${r.status}`}`, Toasts.Type.FAILURE);
+            if (r.ok) showToast(`Downloading on ${target.label} — re-check in a moment`, "success");
+            else showToast(`Download failed: ${(r.data || "").slice(0, 160) || `HTTP ${r.status}`}`, "failure");
         } finally { setBusy(false); }
     };
     return (
@@ -183,7 +183,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
         const title = multi ? `${att.filename || "workflow"} — ${v.label}` : (att.filename || "workflow");
         await saveToLibrary({ ...att, filename: title }, { workflow: v.workflow, prompt: v.prompt, kind: meta.kind }, { ...source, id: idFor(vi) });
         setSaved(true);
-        showToast("Saved to library ★", Toasts.Type.SUCCESS);
+        showToast("Saved to library ★", "success");
     };
     const switchVariant = (i: number) => {
         setVi(i); setCompat(null); setHl(null);
