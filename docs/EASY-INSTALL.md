@@ -29,6 +29,10 @@ run offline. It does not install another Discord application or rebuild Vesktop.
 
 Keep the downloaded installer; it is also your update and recovery tool.
 
+**Upgrading from installer 0.1.0 or 0.1.1:** download the new installer app from
+Releases once. The old app's Update button updates Peeper, not the installer
+itself, so it cannot receive these recovery fixes automatically.
+
 | Button | What it does |
 | --- | --- |
 | Install Peeper | Installs the tested bundle included with the installer. |
@@ -36,6 +40,16 @@ Keep the downloaded installer; it is also your update and recovery tool.
 | Repair | Verifies/reinstalls the saved bundle and re-enables Peeper. Works offline. |
 | Roll back | Switches to the previous Peeper release after an update. |
 | Remove | Restores your original Vencord selection and removes installer-owned bundles. |
+| Installer updates | Checks for a newer installer app and offers its download page. |
+
+Update also tells you when the installer app is out of date. It never replaces
+the running executable or opens a download page without your click. Install
+and Repair remain offline operations.
+
+Reinstalling an identical release preserves the previous rollback target.
+Unused installer-created bundles and caches are cleaned up after a successful
+operation; the active and rollback releases are kept. Cleanup is deferred if
+an interrupted settings transaction still needs recovery.
 
 Quit Vesktop before any of these operations. The installer will tell you if it
 is still running; it does not kill the application.
@@ -112,6 +126,14 @@ modify your source checkout.
   the issue, choose Roll back.
 - **Interrupted installation:** rerun the installer while Vesktop is closed and
   choose Repair. A small journal restores interrupted settings writes before retrying.
+- **Saved repair bundle missing or damaged:** choose Update to download a verified
+  copy, even when you already have the latest release. Offline Repair can use the
+  installer's embedded bundle if it exactly matches your installed release.
+- **Malformed plugin settings:** the installer remains usable and displays the
+  file to restore. It does not reset or overwrite malformed plugin configuration.
+- **Snap upgrade from an older Peeper installer:** run Repair once with installer
+  0.1.2+ to migrate to a stable `current` path. Future Snap refreshes can then move
+  your profile between numbered revisions without leaving a stale bundle selection.
 
 This installer does not change graphics, audio, accessibility, or speech flags.
 Vesktop/Electron problems are separate from installing Peeper.
@@ -123,6 +145,8 @@ data folder, so Flatpak and portable installations can access them. The installe
 sets **`vencordDir` in Vesktop's `state.json`**, enables `ComfyPeeper` in Vencord's
 plugin settings, and keeps versioned bundles for recovery. It does not overwrite
 Vesktop's managed `sessionData/vencordFiles` directory.
+For Snap profiles, the saved selection uses the stable `current` alias while
+filesystem operations and locks use the active revision's resolved directory.
 
 Vesktop 1.6.7 requires a `package.json` alongside the Vencord bundles; the release
 includes it. The bundled Vencord updater is disabled so it cannot replace Peeper

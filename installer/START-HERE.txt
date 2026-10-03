@@ -7,6 +7,9 @@ ComfyPeeper for Vesktop
 
 No Python, Node, Git, pnpm, terminal commands, or administrator access required.
 Keep the installer to update, repair, roll back, or remove Peeper later.
+Use Installer updates to check for a new installer app. Update changes the
+Peeper bundle, not this app itself. Users of 0.1.0/0.1.1 should download the
+new installer once to receive its recovery fixes.
 
 Linux: extract the whole archive before launching. The executable permission
 is preserved in the archive. If your file manager asks, choose Run/Execute.

@@ -2,6 +2,7 @@ import base64
 import io
 import json
 from pathlib import Path
+import shutil
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -60,6 +61,140 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(settings["plugins"]["ComfyPeeper"]["endpoints"], "preserve")
         self.assertEqual(settings["plugins"]["OtherPlugin"], {"enabled": True})
         self.assertEqual(settings["themeLinks"], ["keep-me"])
+
+    def test_same_release_reinstall_preserves_rollback_and_reuses_files(self):
+        self.inst.activate(make_bundle())
+        latest = make_bundle("0.1.1")
+        self.inst.activate(latest)
+        before = self.inst.info()
+        self.inst.activate(latest)
+        self.assertEqual(self.inst.info(), before)
+        self.inst.rollback()
+        self.assertEqual(self.inst.info()["current"]["version"], "0.1.0")
+
+    def test_download_repairs_missing_or_corrupt_cache_without_losing_rollback(self):
+        self.inst.activate(make_bundle())
+        latest = make_bundle("0.1.1")
+        self.inst.activate(latest)
+        before = self.inst.info()
+        cache = self.inst.root / "downloads" / f"{latest.digest}.zip"
+        for corruption in (None, b"broken"):
+            with self.subTest(corruption=corruption):
+                cache.unlink()
+                if corruption is not None:
+                    cache.write_bytes(corruption)
+                self.inst.activate(latest)
+                self.assertEqual(cache.read_bytes(), latest.data)
+                self.assertEqual(self.inst.info(), before)
+
+    def test_offline_repair_uses_matching_embedded_bundle_when_cache_is_missing(self):
+        bundle = make_bundle()
+        self.inst.activate(bundle)
+        (self.inst.root / "downloads" / f"{bundle.digest}.zip").unlink()
+        with patch.object(core, "bundled_payload", return_value=bundle):
+            self.inst.repair()
+        self.assertIn("installed and enabled", self.inst.status())
+
+    def test_offline_repair_does_not_downgrade_when_cache_is_missing(self):
+        latest = make_bundle("0.2.0")
+        self.inst.activate(latest)
+        (self.inst.root / "downloads" / f"{latest.digest}.zip").unlink()
+        with patch.object(core, "bundled_payload", return_value=make_bundle()):
+            with self.assertRaisesRegex(core.InstallError, "Use Update"):
+                self.inst.repair()
+        self.assertEqual(self.inst.info()["current"]["version"], "0.2.0")
+
+    def test_updates_and_repairs_keep_only_current_and_rollback(self):
+        for version in ("0.1.0", "0.1.1", "0.1.2", "0.1.3"):
+            self.inst.activate(make_bundle(version))
+        before = self.inst.info()
+        for _ in range(4):
+            self.inst.repair()
+        self.assertEqual(self.inst.info(), before)
+        self.assertEqual({p.name for p in (self.inst.root / "releases").iterdir()},
+                         {before[key]["directory"] for key in ("current", "previous")})
+        self.assertEqual({p.name for p in (self.inst.root / "downloads").iterdir()},
+                         {before[key]["sha256"] + ".zip" for key in ("current", "previous")})
+        self.inst.rollback()
+        self.assertEqual(self.inst.info()["current"]["version"], "0.1.2")
+
+    def test_corrupt_release_repair_collects_replaced_files_only(self):
+        self.inst.activate(make_bundle())
+        self.inst.activate(make_bundle("0.1.1"))
+        before = self.inst.info()
+        broken = self.inst.release_path(before["current"]["directory"])
+        (broken / "package.json").write_text("bad")
+        self.inst.repair()
+        self.assertFalse(broken.exists())
+        self.assertEqual(self.inst.info()["previous"], before["previous"])
+        self.assertEqual(len(list((self.inst.root / "releases").iterdir())), 2)
+
+    def test_cleanup_keeps_unknown_files_and_symlinks(self):
+        self.inst.activate(make_bundle())
+        unknown = self.inst.root / "releases/notes"
+        unknown.mkdir()
+        (unknown / "keep.txt").write_text("user notes")
+        external = self.home / "external"
+        external.mkdir()
+        (external / "keep.txt").write_text("external data")
+        link = self.inst.root / "releases" / ("0.0.1-" + "a" * 12 + "-" + "b" * 8)
+        try:
+            link.symlink_to(external, target_is_directory=True)
+        except OSError:
+            self.skipTest("Host does not permit symlinks")
+        self.inst.repair()
+        self.assertTrue(link.is_symlink())
+        self.assertEqual((external / "keep.txt").read_text(), "external data")
+        self.assertEqual((unknown / "keep.txt").read_text(), "user notes")
+
+    def test_cleanup_is_deferred_while_recovery_journal_exists(self):
+        self.inst.activate(make_bundle())
+        orphan = self.inst.root / "downloads" / ("a" * 64 + ".zip")
+        orphan.write_bytes(b"orphan")
+        core.atomic_write(self.inst.root / "pending.json", b"{}")
+        self.inst.cleanup()
+        self.assertTrue(orphan.exists())
+
+    def test_cleanup_failure_does_not_fail_committed_update(self):
+        self.inst.activate(make_bundle())
+        self.inst.activate(make_bundle("0.1.1"))
+        with patch.object(core.shutil, "rmtree", side_effect=PermissionError("locked file")):
+            self.inst.activate(make_bundle("0.1.2"))
+        self.assertIn("0.1.2 is installed and enabled", self.inst.status())
+
+    def test_failed_update_keeps_previous_and_current_bundles(self):
+        self.inst.activate(make_bundle())
+        self.inst.activate(make_bundle("0.1.1"))
+        before = self.inst.info()
+        with patch.object(self.inst, "transaction", side_effect=OSError("full disk")):
+            with self.assertRaises(OSError):
+                self.inst.activate(make_bundle("0.1.2"))
+        self.assertEqual(self.inst.info(), before)
+        self.assertEqual(len(list((self.inst.root / "releases").iterdir())), 2)
+        self.inst.verify_release(before)
+        self.inst.verify_release(before, "previous")
+
+    def test_malformed_nested_settings_never_crash_status_or_get_overwritten(self):
+        self.inst.activate(make_bundle())
+        self.inst.activate(make_bundle("0.1.1"))
+        for bad in ({"plugins": None}, {"plugins": []}, {"plugins": {"ComfyPeeper": None}},
+                    {"plugins": {"ComfyPeeper": "bad"}}):
+            with self.subTest(settings=bad):
+                data = core.encode_object(bad)
+                core.atomic_write(self.profile / "settings/settings.json", data)
+                self.assertIn("malformed", self.inst.status())
+                for action in (self.inst.repair, self.inst.rollback, self.inst.uninstall):
+                    with self.assertRaisesRegex(core.InstallError, "malformed"):
+                        action()
+                self.assertEqual((self.profile / "settings/settings.json").read_bytes(), data)
+
+    def test_malformed_installation_record_is_actionable(self):
+        self.inst.activate(make_bundle())
+        info = self.inst.info()
+        info["current"].pop("directory")
+        core.atomic_write(self.inst.paths["installation"], core.encode_object(info))
+        with self.assertRaisesRegex(core.InstallError, "record is invalid"):
+            self.inst.info()
 
     def test_update_rollback_and_remove_preserve_changes_made_after_install(self):
         self.inst.activate(make_bundle())
@@ -263,6 +398,63 @@ class BundleTests(unittest.TestCase):
 
 
 class DetectionTests(unittest.TestCase):
+    def test_snap_selection_survives_refresh_and_old_revision_removal(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(core, "vesktop_pids", return_value=[]):
+            home = Path(temp).resolve()
+            old = home / "snap/vesktop/100"
+            new = home / "snap/vesktop/101"
+            core.atomic_write(old / ".config/vesktop/state.json", b"{}")
+            alias = old.parent / "current"
+            try:
+                alias.symlink_to(old.name, target_is_directory=True)
+            except OSError:
+                self.skipTest("Host does not permit symlinks")
+            inst = core.Installation(core.discover_profiles(home, {}, "linux")[0])
+            inst.activate(make_bundle())
+            selected = core.read_object(inst.paths["state"])["vencordDir"]
+            self.assertIn("current", Path(selected).parts)
+            shutil.copytree(old, new)
+            alias.unlink()
+            alias.symlink_to(new.name, target_is_directory=True)
+            old.rename(old.with_name("retired-100"))
+            moved = core.Installation(core.discover_profiles(home, {}, "linux")[0])
+            self.assertTrue(Path(selected).is_dir())
+            self.assertIn("installed and enabled", moved.status())
+            moved.repair()
+            moved.uninstall()
+            self.assertNotIn("vencordDir", core.read_object(moved.paths["state"]))
+
+    def test_snap_existing_absolute_selection_migrates_on_repair(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(core, "vesktop_pids", return_value=[]):
+            home = Path(temp).resolve()
+            profile = home / "snap/vesktop/100/.config/vesktop"
+            core.atomic_write(profile / "state.json", b"{}")
+            try:
+                (home / "snap/vesktop/current").symlink_to("100", target_is_directory=True)
+            except OSError:
+                self.skipTest("Host does not permit symlinks")
+            inst = core.Installation(profile)
+            inst.activate(make_bundle())
+            state = core.read_object(inst.paths["state"])
+            state["vencordDir"] = str(inst.release_path(inst.info()["current"]["directory"]))
+            core.atomic_write(inst.paths["state"], core.encode_object(state))
+            inst.repair()
+            self.assertIn("current", Path(core.read_object(inst.paths["state"])["vencordDir"]).parts)
+
+    def test_inactive_snap_revision_is_not_modified(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(core, "vesktop_pids", return_value=[]):
+            home = Path(temp).resolve()
+            profile = home / "snap/vesktop/100/.config/vesktop"
+            core.atomic_write(profile / "state.json", b"{}")
+            core.atomic_write(home / "snap/vesktop/101/.config/vesktop/state.json", b"{}")
+            try:
+                (home / "snap/vesktop/current").symlink_to("101", target_is_directory=True)
+            except OSError:
+                self.skipTest("Host does not permit symlinks")
+            with self.assertRaisesRegex(core.InstallError, "no longer current"):
+                core.Installation(profile).activate(make_bundle())
+            self.assertEqual(core.read_object(profile / "state.json"), {})
+
     def test_macos_application_support_and_custom(self):
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp).resolve()

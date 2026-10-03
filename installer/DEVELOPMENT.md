@@ -36,6 +36,16 @@ self-test both directly and through LaunchServices (Finder-style opening).
 This verifies packaging and GUI startup, not Gatekeeper approval/notarization
 or a logged-in Vesktop session. No Apple signing credentials are configured.
 
+The separate `vesktop` CI job downloads a checksum-pinned official Vesktop 1.6.7
+Linux release, installs the actual bundle in a disposable profile, and starts the
+unmodified app under Xvfb. A loopback DevTools connection verifies Peeper's renderer
+registration, enabled setting, and native IPC by parsing an in-memory workflow.
+It never signs in, posts messages, or connects to ComfyUI. The scripts refuse to
+run outside GitHub Actions so they cannot accidentally reuse a personal desktop.
+This gate requires access to Discord's logged-out web app; it does not replace
+manual tests of logged-in patches, metadata badges, previews, and upload hooks.
+The test's Chromium flags apply only to its disposable process, not user settings.
+
 ## Updating the bundled Vencord
 
 1. Update the exact `vencord_commit` and version in `installer/release.json`.
@@ -60,7 +70,8 @@ not be distributed. The workflow always creates a fresh checkout.
 
 ## Publish
 
-Every relevant push builds all three installers and runs their packaged smoke tests.
+Every relevant push builds all three installers and runs their packaged smoke tests
+plus the real Vesktop integration test.
 Download the resulting workflow artifacts for review. A `vX.Y.Z` tag matching
 `installer/release.json` publishes the tested artifacts as a GitHub release only
 after all jobs pass. The workflow also supports manual runs without publishing.

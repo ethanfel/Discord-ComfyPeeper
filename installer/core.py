@@ -42,6 +42,7 @@ REQUIRED_FILES = {
 MAX_DOWNLOAD = 32 * 1024 * 1024
 MAX_UNPACKED = 80 * 1024 * 1024
 MANAGED_NAME = "comfypeeper-installer"
+RELEASE_DIRECTORY = r"[0-9]+\.[0-9]+\.[0-9]+-[a-f0-9]{12}-[a-f0-9]{8}"
 Log = Callable[[str], None]
 
 
@@ -67,6 +68,20 @@ def encode_object(value: dict) -> bytes:
     return (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
 
 
+def plugin_settings(settings: dict) -> dict:
+    """Validate nested settings before reading or changing them; never reset data."""
+    plugins = settings.get("plugins", {})
+    if not isinstance(plugins, dict) or not isinstance(plugins.get("ComfyPeeper", {}), dict):
+        raise InstallError("Vencord's plugin settings are malformed. Restore settings/settings.json from a backup; your existing file has not been changed.")
+    return settings.setdefault("plugins", {}).setdefault("ComfyPeeper", {})
+
+
+def version_tuple(version: str) -> tuple[int, ...]:
+    if not isinstance(version, str) or not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise InstallError("Invalid release version. Download the latest installer.")
+    return tuple(map(int, version.split(".")))
+
+
 def atomic_write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}-", dir=path.parent)
@@ -90,6 +105,22 @@ def profile_path(path: Path) -> Path:
     return path
 
 
+def stable_profile_path(profile: Path) -> Path:
+    """Keep Snap selections on 'current', not a revision that refresh retires.
+
+    All filesystem operations and locks still use the resolved profile. Recheck
+    the alias before committing so a concurrent Snap refresh cannot redirect us.
+    """
+    if (len(profile.parents) >= 4 and profile.parts[-2:] == (".config", "vesktop")
+            and re.fullmatch(r"x?\d+", profile.parents[1].name)
+            and profile.parents[2].name == "vesktop" and profile.parents[3].name == "snap"):
+        alias = profile.parents[2] / "current/.config/vesktop"
+        if alias.resolve() != profile:
+            raise InstallError("This Snap profile is no longer current. Click Refresh and select the current Vesktop profile.")
+        return alias
+    return profile
+
+
 def discover_profiles(home: Path | None = None, env: dict | None = None, platform: str | None = None) -> list[Path]:
     home, env, platform = home or Path.home(), os.environ if env is None else env, platform or sys.platform
     candidates = []
@@ -109,7 +140,7 @@ def discover_profiles(home: Path | None = None, env: dict | None = None, platfor
     for candidate in candidates:
         try:
             resolved = profile_path(candidate)
-        except InstallError:
+        except (InstallError, OSError):
             continue
         if resolved not in found:
             found.append(resolved)
@@ -252,6 +283,18 @@ def latest_bundle(log: Log = lambda _: None) -> Bundle:
         raise InstallError("This release does not include a compatible Peeper bundle. Download the latest installer.") from None
 
 
+def latest_installer_version() -> str:
+    try:
+        release = json.loads(download(f"https://api.github.com/repos/{REPOSITORY}/releases/latest", 1024 * 1024))
+        tag = release["tag_name"]
+        if not isinstance(tag, str) or not tag.startswith("v") or release.get("prerelease") or release.get("draft"):
+            raise InstallError("No stable installer release was found.")
+        version_tuple(tag[1:])
+        return tag[1:]
+    except (KeyError, TypeError, ValueError):
+        raise InstallError("Could not read the latest installer version.") from None
+
+
 def capture_field(obj: dict, key: str) -> dict:
     return {"exists": key in obj, "value": obj.get(key)}
 
@@ -278,15 +321,39 @@ class Installation:
 
     def info(self) -> dict:
         info = read_object(self.paths["installation"])
-        if info and (info.get("schema") != 1 or not isinstance(info.get("current"), dict)):
-            raise InstallError("The installation record is incompatible. Download the latest installer.")
+        if info:
+            if info.get("schema") != 1:
+                raise InstallError("The installation record is incompatible. Download the latest installer.")
+            for key in ("current", "previous"):
+                if key == "previous" and key not in info:
+                    continue
+                record = info.get(key)
+                if not isinstance(record, dict) or not isinstance(record.get("sha256"), str) or not re.fullmatch(r"[a-f0-9]{64}", record["sha256"]):
+                    raise InstallError("The installation record is malformed. Keep the installer folder and contact the maintainer.")
+                version_tuple(record.get("version"))
+                self.release_path(record.get("directory"))
+            for key in ("original_directory", "original_enabled"):
+                field = info.get(key)
+                if not isinstance(field, dict) or type(field.get("exists")) is not bool or "value" not in field:
+                    raise InstallError("The installation's original settings record is malformed. Keep it and contact the maintainer.")
+            original = info["original_directory"]["value"]
+            if original is not None and not isinstance(original, str):
+                raise InstallError("The original Vencord selection is malformed. Keep the installation record and contact the maintainer.")
         return info
+
+    def selection_path(self, record: dict) -> Path:
+        self.release_path(record["directory"])
+        return stable_profile_path(self.profile) / MANAGED_NAME / "releases" / record["directory"]
+
+    def is_selected(self, state: dict, record: dict) -> bool:
+        selected = state.get("vencordDir")
+        return isinstance(selected, str) and Path(selected).resolve() == self.release_path(record["directory"]).resolve()
 
     def custom_build_warning(self) -> bool:
         info = self.info()
         state = read_object(self.paths["state"])
         if info:
-            return bool(state.get("vencordDir") and state["vencordDir"] != str(self.release_path(info["current"]["directory"])))
+            return bool(state.get("vencordDir") and not self.is_selected(state, info["current"]))
         if state.get("vencordDir"):
             return True
         renderer = self.profile / "sessionData/vencordFiles/vencordDesktopRenderer.js"
@@ -300,6 +367,7 @@ class Installation:
     @contextmanager
     def locked(self):
         ensure_closed()
+        stable_profile_path(self.profile)
         self.root.mkdir(parents=True, exist_ok=True)
         with (self.root / "operation.lock").open("a+b") as lock:
             try:
@@ -349,6 +417,7 @@ class Installation:
 
     def transaction(self, objects: dict[str, dict]) -> None:
         ensure_closed()
+        stable_profile_path(self.profile)
         pending = {}
         for key, path in self.paths.items():
             before = path.read_bytes() if path.exists() else None
@@ -367,17 +436,19 @@ class Installation:
         journal.unlink()
 
     def release_path(self, name: str) -> Path:
-        if not isinstance(name, str) or not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+-[a-f0-9]{12}-[a-f0-9]{8}", name):
+        if not isinstance(name, str) or not re.fullmatch(RELEASE_DIRECTORY, name):
             raise InstallError("The installed release record is invalid.")
         path = self.root / "releases" / name
         if path.is_symlink():
             raise InstallError("The installed release unexpectedly points to another folder.")
         return path
 
-    def verify_release(self, info: dict, key: str = "current") -> Path:
+    def verify_release(self, info: dict, key: str = "current", bundle: Bundle | None = None) -> Path:
         record = info[key]
         path = self.release_path(record["directory"])
-        bundle = self.cached_bundle(record)
+        bundle = bundle or self.cached_bundle(record)
+        if bundle.digest != record["sha256"]:
+            raise InstallError("The repair bundle does not match the installed release.")
         for name, contents in bundle.files.items():
             file = path / name
             if not file.is_file() or file.is_symlink() or file.read_bytes() != contents:
@@ -402,10 +473,10 @@ class Installation:
         try:
             path = self.verify_release(info)
             state = read_object(self.paths["state"])
-            if state.get("vencordDir") != str(path):
+            if not self.is_selected(state, info["current"]):
                 return "ComfyPeeper is installed but not selected in Vesktop. Choose Repair."
             settings = read_object(self.paths["settings"])
-            if not settings.get("plugins", {}).get("ComfyPeeper", {}).get("enabled"):
+            if not plugin_settings(settings).get("enabled"):
                 return "ComfyPeeper is installed but disabled. Choose Repair to enable it."
             return f"ComfyPeeper {info['current']['version']} is installed and enabled."
         except InstallError as exc:
@@ -416,39 +487,101 @@ class Installation:
             info = self.info()
             state = read_object(self.paths["state"])
             settings = read_object(self.paths["settings"])
-            plugins = settings.setdefault("plugins", {})
-            if not isinstance(plugins, dict) or not isinstance(plugins.get("ComfyPeeper", {}), dict):
-                raise InstallError("ComfyPeeper's plugin settings are malformed. Repair the settings file first.")
-            plugin = plugins.setdefault("ComfyPeeper", {})
+            plugin = plugin_settings(settings)
             if not info.get("current"):
                 info = {"schema": 1, "original_directory": capture_field(state, "vencordDir"),
                         "original_enabled": capture_field(plugin, "enabled")}
             current = info.get("current")
             if repair and current and current.get("sha256") != bundle.digest:
                 raise InstallError("Another operation changed the selected release. Choose Repair again.")
-            if current and not repair and tuple(map(int, bundle.version.split("."))) < tuple(map(int, current["version"].split("."))):
+            if current and not repair and version_tuple(bundle.version) < version_tuple(current["version"]):
                 raise InstallError("This installer includes an older bundle. Choose Update, or use Roll back to restore your previous version.")
             cache = self.root / "downloads" / f"{bundle.digest}.zip"
-            atomic_write(cache, bundle.data)
-            name = f"{bundle.version}-{bundle.digest[:12]}-{uuid.uuid4().hex[:8]}"
-            path = self.release_path(name)
-            self.log("Installing verified files…")
-            bundle.extract(path)
-            if current and not repair:
-                info["previous"] = current
-            info["current"] = {"directory": name, "version": bundle.version, "sha256": bundle.digest,
-                               "vencord_commit": bundle.manifest["vencord_commit"], "peeper_commit": bundle.manifest["peeper_commit"]}
-            state["vencordDir"] = str(path)
-            plugin["enabled"] = True
-            self.transaction({"state": state, "settings": settings, "installation": info})
+            # A verified download must repair a missing/corrupt cache even when
+            # the current release hash matches. Never discard that fresh copy.
+            if not cache.is_file() or cache.read_bytes() != bundle.data:
+                atomic_write(cache, bundle.data)
+            same_bundle = bool(current and current["sha256"] == bundle.digest)
+            path = None
+            if same_bundle:
+                try:
+                    path = self.verify_release(info, bundle=bundle)
+                except InstallError:
+                    pass
+            try:
+                if path is None:
+                    name = f"{bundle.version}-{bundle.digest[:12]}-{uuid.uuid4().hex[:8]}"
+                    path = self.release_path(name)
+                    self.log("Installing verified files…")
+                    bundle.extract(path)
+                    # Identical reinstalls and repairs keep the useful rollback.
+                    if current and not same_bundle:
+                        info["previous"] = current
+                    info["current"] = {"directory": name, "version": bundle.version, "sha256": bundle.digest,
+                                       "vencord_commit": bundle.manifest["vencord_commit"], "peeper_commit": bundle.manifest["peeper_commit"]}
+                state["vencordDir"] = str(self.selection_path(info["current"]))
+                plugin["enabled"] = True
+                objects = {"state": state, "settings": settings, "installation": info}
+                if any(read_object(self.paths[key]) != value for key, value in objects.items()):
+                    self.transaction(objects)
+            except BaseException:
+                self.cleanup()
+                raise
+            self.cleanup()
             self.log(f"ComfyPeeper {bundle.version} is installed. Open Vesktop to use it.")
+
+    def cleanup(self) -> None:
+        """Under the profile lock, collect only owned, unreferenced artifacts.
+
+        Read the committed record, never the tentative in-memory update. A
+        pending journal can still need either side, so defer all collection.
+        Cleanup errors must not turn a committed installation into a failure.
+        """
+        if (self.root / "pending.json").exists():
+            return
+        try:
+            info = self.info()
+            records = [info[key] for key in ("current", "previous") if info.get(key)]
+            keep_dirs = {record["directory"] for record in records}
+            keep_hashes = {record["sha256"] + ".zip" for record in records}
+            original = info.get("original_directory", {}).get("value")
+            if isinstance(original, str) and Path(original).parent.resolve() == (self.root / "releases").resolve():
+                keep_dirs.add(Path(original).name)
+            removed = 0
+            for folder, pattern, keep in (("releases", RELEASE_DIRECTORY, keep_dirs),
+                                          ("downloads", r"[a-f0-9]{64}\.zip", keep_hashes)):
+                parent = self.root / folder
+                if not parent.is_dir() or parent.is_symlink():
+                    continue
+                for candidate in parent.iterdir():
+                    if candidate.name in keep or not re.fullmatch(pattern, candidate.name) or candidate.is_symlink():
+                        continue
+                    if folder == "releases" and candidate.is_dir():
+                        shutil.rmtree(candidate)
+                    elif folder == "downloads" and candidate.is_file():
+                        candidate.unlink()
+                    else:
+                        continue
+                    removed += 1
+            if removed:
+                self.log(f"Removed {removed} unused installer artifacts; active and rollback bundles are kept.")
+        except (InstallError, OSError) as exc:
+            self.log(f"Cleanup deferred; your installation is safe: {exc}")
 
     def repair(self) -> None:
         # Recover before reading the current record, then activate under a new
         # lock. activate re-reads settings, preserving unrelated user changes.
         with self.locked():
             info = self.info()
-            bundle = self.cached_bundle(info["current"]) if info.get("current") else bundled_payload()
+            if info.get("current"):
+                try:
+                    bundle = self.cached_bundle(info["current"])
+                except InstallError:
+                    bundle = bundled_payload()
+                    if bundle.digest != info["current"]["sha256"]:
+                        raise InstallError("The saved repair bundle is missing or damaged. Use Update to download a verified copy.") from None
+            else:
+                bundle = bundled_payload()
         self.activate(bundle, repair=True)
 
     def rollback(self) -> None:
@@ -460,9 +593,10 @@ class Installation:
             info["current"], info["previous"] = info["previous"], info["current"]
             state = read_object(self.paths["state"])
             settings = read_object(self.paths["settings"])
-            state["vencordDir"] = str(path)
-            settings.setdefault("plugins", {}).setdefault("ComfyPeeper", {})["enabled"] = True
+            state["vencordDir"] = str(self.selection_path(info["current"]))
+            plugin_settings(settings)["enabled"] = True
             self.transaction({"state": state, "settings": settings, "installation": info})
+            self.cleanup()
             self.log(f"Restored ComfyPeeper {info['current']['version']}. Open Vesktop when ready.")
 
     def uninstall(self) -> None:
@@ -471,14 +605,13 @@ class Installation:
             if not info.get("current"):
                 raise InstallError("This profile has no Peeper installation managed by this installer.")
             state = read_object(self.paths["state"])
-            selected = state.get("vencordDir")
-            if selected != str(self.release_path(info["current"]["directory"])):
+            if not self.is_selected(state, info["current"]):
                 raise InstallError("Vesktop's custom Vencord selection changed. This installer will not replace that selection; choose Repair first if you want to return to Peeper.")
             original = info["original_directory"]
             if original["exists"] and original["value"] and not Path(original["value"]).is_dir():
                 raise InstallError("Your previous custom Vencord folder is missing. Restore that folder before removing Peeper.")
             settings = read_object(self.paths["settings"])
-            plugin = settings.setdefault("plugins", {}).setdefault("ComfyPeeper", {})
+            plugin = plugin_settings(settings)
             restore_field(state, "vencordDir", original)
             restore_field(plugin, "enabled", info["original_enabled"])
             self.transaction({"state": state, "settings": settings, "installation": {}})

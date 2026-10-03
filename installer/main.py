@@ -23,6 +23,8 @@ class InstallerWindow:
         self.profile = tk.StringVar()
         self.status = tk.StringVar(value="Looking for Vesktop…")
         self.buttons = []
+        self.new_installer_version = None
+        self.checking_installer = False
         root.title("ComfyPeeper Installer")
         root.geometry("730x610")
         root.minsize(670, 580)
@@ -61,6 +63,8 @@ class InstallerWindow:
         linkrow.pack(fill="x")
         self.button(linkrow, "Get Vesktop", lambda: webbrowser.open("https://vesktop.dev/")).pack(side="left")
         self.button(linkrow, "Refresh", self.detect).pack(side="left", padx=8)
+        self.installer_update_button = self.button(linkrow, "Installer updates", self.check_installer_update)
+        self.installer_update_button.pack(side="left")
 
         ttk.Separator(frame).pack(fill="x", pady=16)
         ttk.Label(frame, textvariable=self.status, wraplength=660).pack(anchor="w")
@@ -102,7 +106,11 @@ class InstallerWindow:
         self.details.configure(state="disabled")
 
     def detect(self):
-        profiles = core.discover_profiles()
+        try:
+            profiles = core.discover_profiles()
+        except (core.InstallError, OSError) as exc:
+            self.status.set(f"Cannot search for profiles: {exc}. Use Browse to select one.")
+            return
         self.chooser["values"] = [str(p) for p in profiles]
         if len(profiles) == 1:
             self.profile.set(str(profiles[0]))
@@ -125,12 +133,38 @@ class InstallerWindow:
         if chosen:
             try:
                 path = str(core.profile_path(Path(chosen)))
-            except core.InstallError as exc:
+            except (core.InstallError, OSError) as exc:
                 messagebox.showerror("Vesktop data folder", str(exc), parent=self.root)
                 return
             self.chooser["values"] = list(dict.fromkeys([*self.chooser["values"], path]))
             self.profile.set(path)
             self.refresh_status()
+
+    def check_installer_update(self):
+        if self.new_installer_version:
+            webbrowser.open(core.RELEASES_URL + "/latest")
+            return
+        if self.checking_installer:
+            return
+        self.checking_installer = True
+        self.log("Checking the installer app version (separate from the Peeper bundle)…")
+
+        def check():
+            try:
+                self.events.put(("installer-version", core.latest_installer_version()))
+            except core.InstallError as exc:
+                self.events.put(("installer-check-error", str(exc)))
+
+        threading.Thread(target=check, name="peeper-installer-check", daemon=True).start()
+
+    def announce_installer_version(self, version: str):
+        self.checking_installer = False
+        if core.version_tuple(version) > core.version_tuple(VERSION):
+            self.new_installer_version = version
+            self.installer_update_button.configure(text=f"Get installer {version}")
+            self.log(f"Installer {version} is available (you are using {VERSION}). Click Get installer {version} to download it. Updating Peeper does not replace this installer app.")
+        else:
+            self.log(f"Installer {VERSION} is up to date.")
 
     def start(self, action: str):
         if self.busy:
@@ -163,12 +197,9 @@ class InstallerWindow:
                     installation.activate(core.bundled_payload())
                 elif action == "update":
                     bundle = core.latest_bundle(installation.log)
-                    info = installation.info()
-                    if info.get("current", {}).get("sha256") == bundle.digest:
-                        installation.repair()
-                        installation.log("You have the latest release.")
-                    else:
-                        installation.activate(bundle)
+                    self.events.put(("installer-version", bundle.version))
+                    installation.activate(bundle)
+                    installation.log("You have the latest Peeper bundle.")
                 else:
                     {"repair": installation.repair, "rollback": installation.rollback, "remove": installation.uninstall}[action]()
                 self.events.put(("done", "Done. You can open Vesktop now."))
@@ -181,6 +212,13 @@ class InstallerWindow:
         try:
             while True:
                 kind, text = self.events.get_nowait()
+                if kind == "installer-version":
+                    self.announce_installer_version(text)
+                    continue
+                if kind == "installer-check-error":
+                    self.checking_installer = False
+                    self.log(text)
+                    continue
                 self.log(text)
                 if kind in {"done", "error"}:
                     self.busy = False

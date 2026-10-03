@@ -1,5 +1,20 @@
 Install ComfyPeeper on Windows, Linux, or Apple Silicon Mac without Git, Node,
-pnpm, or Python. New in **0.1.1**: a native ARM64 Mac app and disk image.
+pnpm, or Python.
+
+## New in 0.1.2
+
+- Update repairs missing/corrupt caches using the fresh verified download.
+- Identical reinstalls preserve rollback; healthy repairs reuse existing files.
+- Malformed settings produce useful errors instead of crashing the installer.
+- Snap selections survive revision changes; Repair migrates old selections.
+- Unused installer bundles/caches are safely collected after committed changes.
+- Installer updates are checked separately from Peeper bundle updates.
+- Regression coverage and a real Vesktop startup/native-plugin test gate releases.
+
+**Existing users: download this new installer app once.** Updating the Peeper
+bundle from an old installer cannot update that installer's own code.
+
+## Install
 
 1. Install [Vesktop](https://vesktop.dev/), open it once, then quit it from the tray (Cmd+Q on Mac).
 2. Download the installer for your system:
