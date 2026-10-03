@@ -70,14 +70,20 @@ class InstallerWindow:
         self.button(actions, "Remove", lambda: self.start("remove")).pack(side="left")
         self.progress = ttk.Progressbar(frame, mode="indeterminate")
         self.progress.pack(fill="x", pady=(0, 10))
-        self.details = tk.Text(frame, height=8, wrap="word", state="disabled", font=(family, 10),
+        self.details = tk.Text(frame, height=5, wrap="word", state="disabled", font=(family, 10),
                                background="white", foreground="#343449", borderwidth=1, relief="solid", padx=10, pady=8)
-        self.details.pack(fill="both", expand=True)
         footer = ttk.Frame(frame)
-        footer.pack(fill="x", pady=(12, 0))
+        footer.pack(side="bottom", fill="x", pady=(12, 0))
         ttk.Label(footer, text=f"Installer {VERSION} · Windows / Linux", style="Muted.TLabel").pack(side="left")
         self.button(footer, "Help", lambda: webbrowser.open(f"https://github.com/{core.REPOSITORY}/blob/main/docs/EASY-INSTALL.md")).pack(side="right")
         self.button(footer, "License", self.license).pack(side="right", padx=8)
+        self.details.pack(fill="both", expand=True)
+        # Respect desktop font/DPI differences and reserve footer space before
+        # allowing the log to expand. A fixed height clips controls on Linux.
+        root.update_idletasks()
+        width = min(max(730, root.winfo_reqwidth()), root.winfo_screenwidth() - 80)
+        height = min(max(610, root.winfo_reqheight()), root.winfo_screenheight() - 80)
+        root.geometry(f"{width}x{height}")
         self.detect()
         root.after(100, self.poll)
 

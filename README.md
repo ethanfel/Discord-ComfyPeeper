@@ -4,7 +4,7 @@
 
 # Discord-ComfyPeeper
 
-**Easy install for Windows and Linux:** [Download the graphical installer](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest) · [Quick setup guide](docs/EASY-INSTALL.md)
+**Easy install:** [Windows (.exe)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Windows-x64.exe) · [Linux (.tar.gz)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Linux-x64.tar.gz) · [Quick setup guide](docs/EASY-INSTALL.md)
 
 Use Vesktop, open the installer, and click **Install Peeper**. No Git, Node, pnpm,
 or Python required. Updates, repair, rollback, and removal are built in.
