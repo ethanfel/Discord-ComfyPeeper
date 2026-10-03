@@ -32,7 +32,7 @@ class InstallationTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.home = Path(self.tmp.name)
+        self.home = Path(self.tmp.name).resolve()
         self.profile = self.home / ".config/vesktop"
         self.profile.mkdir(parents=True)
         self.state = {"windowBounds": {"width": 999}, "firstLaunch": False}
@@ -264,7 +264,7 @@ class BundleTests(unittest.TestCase):
 class DetectionTests(unittest.TestCase):
     def test_linux_native_flatpak_snap_and_custom(self):
         with tempfile.TemporaryDirectory() as temp:
-            home = Path(temp)
+            home = Path(temp).resolve()
             paths = [home / ".config/vesktop", home / ".var/app/dev.vencord.Vesktop/config/vesktop",
                      home / "snap/vesktop/current/.config/vesktop", home / "custom"]
             for path in paths:
@@ -274,7 +274,7 @@ class DetectionTests(unittest.TestCase):
 
     def test_windows_roaming_and_portable(self):
         with tempfile.TemporaryDirectory() as temp:
-            home = Path(temp)
+            home = Path(temp).resolve()
             roaming = home / "Roaming/vesktop"
             portable = home / "Local/Programs/Vesktop/Data"
             for path in (roaming, portable):

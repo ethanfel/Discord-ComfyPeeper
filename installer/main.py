@@ -9,7 +9,7 @@ import sys
 import tempfile
 import threading
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, font, messagebox, ttk
 import webbrowser
 
 from installer import VERSION, core
@@ -28,14 +28,15 @@ class InstallerWindow:
         root.minsize(670, 580)
         root.protocol("WM_DELETE_WINDOW", self.close)
         style = ttk.Style(root)
+        family = "Segoe UI" if sys.platform == "win32" else font.nametofont("TkDefaultFont").actual("family")
         if "clam" in style.theme_names():
             style.theme_use("clam")
         root.configure(background="#f5f5fa")
         style.configure("TFrame", background="#f5f5fa")
-        style.configure("TLabel", background="#f5f5fa", foreground="#232336", font=("Segoe UI", 10))
-        style.configure("Title.TLabel", font=("Segoe UI", 25, "bold"))
+        style.configure("TLabel", background="#f5f5fa", foreground="#232336", font=(family, 10))
+        style.configure("Title.TLabel", font=(family, 25, "bold"))
         style.configure("Muted.TLabel", foreground="#5e6075")
-        style.configure("TButton", padding=(12, 9), font=("Segoe UI", 10))
+        style.configure("TButton", padding=(12, 9), font=(family, 10))
         style.configure("Primary.TButton", background="#5865f2", foreground="white")
         style.map("Primary.TButton", background=[("active", "#4652d8"), ("disabled", "#a5aadd")])
 
@@ -69,7 +70,7 @@ class InstallerWindow:
         self.button(actions, "Remove", lambda: self.start("remove")).pack(side="left")
         self.progress = ttk.Progressbar(frame, mode="indeterminate")
         self.progress.pack(fill="x", pady=(0, 10))
-        self.details = tk.Text(frame, height=8, wrap="word", state="disabled", font=("Segoe UI", 10),
+        self.details = tk.Text(frame, height=8, wrap="word", state="disabled", font=(family, 10),
                                background="white", foreground="#343449", borderwidth=1, relief="solid", padx=10, pady=8)
         self.details.pack(fill="both", expand=True)
         footer = ttk.Frame(frame)

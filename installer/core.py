@@ -293,12 +293,13 @@ class Installation:
         ensure_closed()
         self.root.mkdir(parents=True, exist_ok=True)
         with (self.root / "operation.lock").open("a+b") as lock:
-            lock.seek(0)
-            if not lock.read(1):
-                lock.write(b"0")
-                lock.flush()
-            lock.seek(0)
             try:
+                # Windows byte-range locks also prohibit reads of that byte
+                # from another handle. Inspect the size without reading it.
+                if os.fstat(lock.fileno()).st_size == 0:
+                    lock.write(b"0")
+                    lock.flush()
+                lock.seek(0)
                 if sys.platform == "win32":
                     import msvcrt
                     msvcrt.locking(lock.fileno(), msvcrt.LK_NBLCK, 1)
