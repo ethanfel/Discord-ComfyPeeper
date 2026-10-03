@@ -4,6 +4,8 @@ The user-facing instructions are in [EASY-INSTALL.md](../docs/EASY-INSTALL.md).
 The GUI uses Python/Tk, packaged with its runtime using PyInstaller. End users
 do not install Python. Linux builds run on Ubuntu 22.04 to set a glibc 2.35 baseline;
 Windows builds run on Windows Server 2022 using Python 3.12 x64.
+Mac builds use the GitHub-hosted `macos-14` Apple Silicon runner and native Python
+3.12 ARM64, targeting macOS 14+. No Intel or universal Mac build is published.
 
 ## Test locally
 
@@ -23,7 +25,16 @@ the executable. Do not leave a source archive in `payload` when building the GUI
 installation/repair/removal in a temporary profile, and creation of the Tk UI.
 It never changes an actual Vesktop profile. On a headless Linux runner use
 `xvfb-run -a`. Unit tests additionally exercise updates, rollback, malformed
-archives, recovery, locks, detection, and settings preservation on both platforms.
+archives, recovery, locks, detection, and settings preservation on all three platforms.
+
+On Apple Silicon, packaging uses PyInstaller's windowed `onedir` `.app` format,
+explicitly targets `arm64`, updates the app's version/minimum OS, and verifies
+the ad-hoc signature. `hdiutil` creates the DMG with an Applications shortcut and
+first-launch instructions. `python scripts/test-macos-installer.py` mounts the
+actual DMG, copies the app out, checks its architecture/signature, and runs the
+self-test both directly and through LaunchServices (Finder-style opening).
+This verifies packaging and GUI startup, not Gatekeeper approval/notarization
+or a logged-in Vesktop session. No Apple signing credentials are configured.
 
 ## Updating the bundled Vencord
 
@@ -38,7 +49,7 @@ archives, recovery, locks, detection, and settings preservation on both platform
    ```
 
    Standalone mode is essential: without it, a Linux build can hardcode Linux-only
-   code paths into a bundle also distributed to Windows. Disabling the stock
+   code paths into a bundle also distributed to Windows and macOS. Disabling the stock
    updater prevents it from replacing this custom release.
 5. `scripts/package-peeper-bundle.py --vencord build/vencord` verifies the checkout,
    build flags, and plugin source; packages files and checksums; and includes the
@@ -49,7 +60,7 @@ not be distributed. The workflow always creates a fresh checkout.
 
 ## Publish
 
-Every relevant push builds both installers and runs their packaged smoke tests.
+Every relevant push builds all three installers and runs their packaged smoke tests.
 Download the resulting workflow artifacts for review. A `vX.Y.Z` tag matching
 `installer/release.json` publishes the tested artifacts as a GitHub release only
 after all jobs pass. The workflow also supports manual runs without publishing.
@@ -58,6 +69,7 @@ The release must contain:
 
 - `ComfyPeeper-Setup-Windows-x64.exe` and its SHA-256 file
 - `ComfyPeeper-Setup-Linux-x64.tar.gz` and its SHA-256 file
+- `ComfyPeeper-Setup-macOS-arm64.dmg` and its SHA-256 file
 - `ComfyPeeper-Bundle.zip` and its SHA-256 file
 - `ComfyPeeper-Source.tar.gz`
 - `THIRD-PARTY-NOTICES.txt`

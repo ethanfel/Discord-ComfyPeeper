@@ -1,4 +1,4 @@
-"""Native Windows/Linux front end. End users run the packaged executable."""
+"""Native Windows/Linux/macOS front end. End users run the packaged app."""
 
 from __future__ import annotations
 
@@ -27,6 +27,9 @@ class InstallerWindow:
         root.geometry("730x610")
         root.minsize(670, 580)
         root.protocol("WM_DELETE_WINDOW", self.close)
+        if sys.platform == "darwin":
+            # Route the app menu and Cmd+Q through the same in-progress guard.
+            root.createcommand("tk::mac::Quit", self.close)
         style = ttk.Style(root)
         family = "Segoe UI" if sys.platform == "win32" else font.nametofont("TkDefaultFont").actual("family")
         if "clam" in style.theme_names():
@@ -45,7 +48,7 @@ class InstallerWindow:
         ttk.Label(frame, text="ComfyPeeper", style="Title.TLabel").pack(anchor="w")
         ttk.Label(frame, text="ComfyUI workflows, right inside Discord.", style="Muted.TLabel").pack(anchor="w", pady=(3, 18))
         ttk.Label(frame, text="Install Peeper into Vesktop in a few clicks. No developer tools required.", wraplength=660).pack(anchor="w")
-        ttk.Label(frame, text="First, quit Vesktop from its tray icon. You can reopen it when installation finishes.", wraplength=660, style="Muted.TLabel").pack(anchor="w", pady=(6, 18))
+        ttk.Label(frame, text=f"{core.quit_instruction()} You can reopen it when installation finishes.", wraplength=660, style="Muted.TLabel").pack(anchor="w", pady=(6, 18))
 
         ttk.Label(frame, text="Vesktop installation").pack(anchor="w")
         row = ttk.Frame(frame)
@@ -74,7 +77,7 @@ class InstallerWindow:
                                background="white", foreground="#343449", borderwidth=1, relief="solid", padx=10, pady=8)
         footer = ttk.Frame(frame)
         footer.pack(side="bottom", fill="x", pady=(12, 0))
-        ttk.Label(footer, text=f"Installer {VERSION} · Windows / Linux", style="Muted.TLabel").pack(side="left")
+        ttk.Label(footer, text=f"Installer {VERSION} · Windows / Linux / macOS", style="Muted.TLabel").pack(side="left")
         self.button(footer, "Help", lambda: webbrowser.open(f"https://github.com/{core.REPOSITORY}/blob/main/docs/EASY-INSTALL.md")).pack(side="right")
         self.button(footer, "License", self.license).pack(side="right", padx=8)
         self.details.pack(fill="both", expand=True)

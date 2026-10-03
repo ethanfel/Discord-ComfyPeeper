@@ -1,3 +1,3 @@
 """ComfyPeeper's standalone Vesktop installer (GPL-3.0-or-later)."""
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"

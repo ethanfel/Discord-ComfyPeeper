@@ -4,7 +4,7 @@
 
 # Discord-ComfyPeeper
 
-**Easy install:** [Windows (.exe)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Windows-x64.exe) · [Linux (.tar.gz)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Linux-x64.tar.gz) · [Quick setup guide](docs/EASY-INSTALL.md)
+**Easy install:** [Windows (.exe)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Windows-x64.exe) · [Linux (.tar.gz)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Linux-x64.tar.gz) · [Mac — Apple Silicon (.dmg)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-macOS-arm64.dmg) · [Quick setup guide](docs/EASY-INSTALL.md)
 
 Use Vesktop, open the installer, and click **Install Peeper**. No Git, Node, pnpm,
 or Python required. Updates, repair, rollback, and removal are built in.
@@ -79,10 +79,10 @@ metadata).
 
 ## 🚀 Install
 
-### Recommended: Windows or Linux graphical installer
+### Recommended: Windows, Linux, or Apple Silicon Mac graphical installer
 
-1. Install [Vesktop](https://vesktop.dev/), open it once, then fully quit it from the tray.
-2. Download [Windows (.exe)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Windows-x64.exe) or [Linux (.tar.gz)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Linux-x64.tar.gz). On Linux, extract the archive first.
+1. Install [Vesktop](https://vesktop.dev/), open it once, then fully quit it from the tray (Cmd+Q on Mac).
+2. Download [Windows (.exe)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Windows-x64.exe), [Linux (.tar.gz)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Linux-x64.tar.gz), or [Mac — Apple Silicon (.dmg)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-macOS-arm64.dmg). On Linux, extract the archive first. On Mac (macOS 14+), copy the app out of the disk image; see [first-launch help](docs/EASY-INSTALL.md#mac-first-launch) if macOS blocks it.
 3. Open the installer, click **Install Peeper**, then reopen Vesktop.
 
 No developer tools or administrator access needed. The installer includes Vencord + Peeper,

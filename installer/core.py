@@ -86,7 +86,7 @@ def profile_path(path: Path) -> Path:
     if not (path / "state.json").is_file() and (path / "Data" / "state.json").is_file():
         path = path / "Data"  # Windows portable Vesktop
     if not path.is_dir() or not any((path / name).is_file() for name in ("state.json", "settings.json")):
-        raise InstallError("Choose Vesktop's data folder. Launch Vesktop once first, then quit it from the tray.")
+        raise InstallError("Choose Vesktop's data folder. Launch Vesktop once first, then fully quit it.")
     return path
 
 
@@ -99,6 +99,8 @@ def discover_profiles(home: Path | None = None, env: dict | None = None, platfor
         candidates += [Path(env.get("APPDATA", str(home / "AppData" / "Roaming"))) / "vesktop"]
         local = Path(env.get("LOCALAPPDATA", str(home / "AppData" / "Local")))
         candidates += [local / "Programs" / "Vesktop" / "Data"]
+    elif platform == "darwin":
+        candidates.append(home / "Library/Application Support/vesktop")
     else:
         candidates += [Path(env.get("XDG_CONFIG_HOME", str(home / ".config"))) / "vesktop",
                        home / ".var/app/dev.vencord.Vesktop/config/vesktop",
@@ -120,7 +122,8 @@ def vesktop_pids() -> list[int]:
         try:
             name = (process.info["name"] or "").casefold()
             args = process.info["cmdline"] or []
-            if name in {"vesktop", "vesktop.exe"} or (
+            if name in {"vesktop", "vesktop.exe", "vesktop helper", "vesktop helper (renderer)",
+                        "vesktop helper (gpu)", "vesktop helper (plugin)"} or (
                 name.startswith("electron") and any("vesktop" in arg.casefold() and arg.endswith(".asar") for arg in args)
             ):
                 found.append(process.pid)
@@ -129,9 +132,15 @@ def vesktop_pids() -> list[int]:
     return found
 
 
+def quit_instruction() -> str:
+    if sys.platform == "darwin":
+        return "Quit Vesktop with Cmd+Q or Vesktop → Quit Vesktop."
+    return "Right-click Vesktop's tray icon and choose Quit."
+
+
 def ensure_closed() -> None:
     if vesktop_pids():
-        raise InstallError("Vesktop is still running. Right-click its tray icon and choose Quit, then try again.")
+        raise InstallError(f"Vesktop is still running. {quit_instruction()} Then try again.")
 
 
 def sha256(data: bytes) -> str:

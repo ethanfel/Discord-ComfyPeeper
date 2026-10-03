@@ -3,6 +3,7 @@ import io
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import zipfile
@@ -262,6 +263,53 @@ class BundleTests(unittest.TestCase):
 
 
 class DetectionTests(unittest.TestCase):
+    def test_macos_application_support_and_custom(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp).resolve()
+            native = home / "Library/Application Support/vesktop"
+            custom = home / "Custom Vesktop Data"
+            linux = home / ".config/vesktop"
+            for path in (native, custom, linux):
+                path.mkdir(parents=True)
+                (path / "state.json").write_text("{}")
+            env = {"VENCORD_USER_DATA_DIR": str(custom), "XDG_CONFIG_HOME": str(home / ".config")}
+            self.assertEqual(core.discover_profiles(home, env, "darwin"), [custom, native])
+            # Duplicate custom/default paths must not ask users to choose twice.
+            env["VENCORD_USER_DATA_DIR"] = str(native)
+            self.assertEqual(core.discover_profiles(home, env, "darwin"), [native])
+
+    def test_macos_missing_profile_is_not_created(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp).resolve()
+            self.assertEqual(core.discover_profiles(home, {}, "darwin"), [])
+            self.assertFalse((home / "Library").exists())
+
+    def test_macos_lifecycle_with_spaces_in_profile_path(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(core, "vesktop_pids", return_value=[]):
+            home = Path(temp).resolve()
+            profile = home / "Library/Application Support/vesktop"
+            core.atomic_write(profile / "state.json", b'{"firstLaunch": false}')
+            inst = core.Installation(core.discover_profiles(home, {}, "darwin")[0])
+            inst.activate(make_bundle())
+            inst.activate(make_bundle("0.2.0"))
+            inst.repair()
+            inst.rollback()
+            self.assertEqual(inst.info()["current"]["version"], "0.1.0")
+            inst.uninstall()
+            self.assertEqual(core.read_object(profile / "state.json"), {"firstLaunch": False})
+
+    def test_vesktop_main_and_macos_helpers_block_install(self):
+        names = ["Vesktop", "vesktop.exe", "Vesktop Helper", "Vesktop Helper (Renderer)",
+                 "Vesktop Helper (GPU)", "Vesktop Helper (Plugin)", "Discord", "Safari"]
+        processes = [SimpleNamespace(pid=i, info={"name": name, "cmdline": []}) for i, name in enumerate(names, 1)]
+        with patch.object(core.psutil, "process_iter", return_value=processes):
+            self.assertEqual(core.vesktop_pids(), [1, 2, 3, 4, 5, 6])
+
+    def test_macos_running_message_explains_cmd_q(self):
+        with patch.object(core.sys, "platform", "darwin"), patch.object(core, "vesktop_pids", return_value=[123]):
+            with self.assertRaisesRegex(core.InstallError, "Cmd\\+Q"):
+                core.ensure_closed()
+
     def test_linux_native_flatpak_snap_and_custom(self):
         with tempfile.TemporaryDirectory() as temp:
             home = Path(temp).resolve()

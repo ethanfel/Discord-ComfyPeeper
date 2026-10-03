@@ -8,9 +8,10 @@ on:
       - 'installer/**'
       - 'comfyPeeper/**'
       - 'scripts/package-*.py'
+      - 'scripts/test-macos-installer.py'
       - '.github/workflows/installer.yml'
   pull_request:
-    paths: ['installer/**', 'comfyPeeper/**', 'scripts/package-*.py', '.github/workflows/installer.yml']
+    paths: ['installer/**', 'comfyPeeper/**', 'scripts/package-*.py', 'scripts/test-macos-installer.py', '.github/workflows/installer.yml']
   workflow_dispatch:
 
 permissions:
@@ -66,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, windows-2022]
+        os: [ubuntu-22.04, windows-2022, macos-14]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -104,6 +105,13 @@ jobs:
           if ($app.ExitCode -ne 0) { throw "Installer smoke test failed: $($app.ExitCode)" }
           if (-not (Test-Path dist/smoke-test.txt)) { throw 'Smoke test did not produce a result' }
           Get-Content dist/smoke-test.txt
+      - name: Test the Apple Silicon disk image and app
+        if: runner.os == 'macOS'
+        timeout-minutes: 5
+        shell: bash
+        run: |
+          test "$(uname -m)" = arm64
+          python scripts/test-macos-installer.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: installer-${{ runner.os }}

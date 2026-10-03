@@ -1,4 +1,4 @@
-# Install ComfyPeeper — Windows and Linux
+# Install ComfyPeeper — Windows, Linux, and Apple Silicon Mac
 
 The easiest route is **Vesktop + the ComfyPeeper installer**. You do not need
 Git, Node.js, pnpm, Python, administrator access, or terminal commands.
@@ -6,11 +6,14 @@ Git, Node.js, pnpm, Python, administrator access, or terminal commands.
 ## Install
 
 1. Install [Vesktop](https://vesktop.dev/), open it once, and sign in to Discord.
-2. Fully quit Vesktop from its system-tray icon.
+2. Fully quit Vesktop from its system-tray icon, or press **Cmd+Q** on Mac.
 3. [Download the latest ComfyPeeper installer](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest):
    - **Windows:** open `ComfyPeeper-Setup-Windows-x64.exe`.
    - **Linux:** extract `ComfyPeeper-Setup-Linux-x64.tar.gz`, then open
      `ComfyPeeper-Installer` inside the extracted folder.
+   - **Mac (Apple Silicon):** open `ComfyPeeper-Setup-macOS-arm64.dmg`, copy
+     **ComfyPeeper Installer** to Applications (or a folder you own), then open it.
+     See [Mac first launch](#mac-first-launch) below if macOS blocks it.
 4. The installer finds your Vesktop profile. If several appear, select the one you use.
 5. Click **Install Peeper**. When it finishes, reopen Vesktop.
 
@@ -47,16 +50,36 @@ other settings you changed after installation.
 - **Linux, x86-64:** glibc 2.35 or newer (Ubuntu 22.04+, Debian 12+, current Fedora
   and Arch), with an X11/XWayland desktop. Native, Flatpak, and Snap profile paths
   are detected; packaging confinement can vary by distribution.
+- **Mac, Apple Silicon only (M-series):** macOS 14 Sonoma or newer. The installer
+  is native ARM64; no Rosetta or Homebrew needed. Intel Macs are not supported.
 - **Vesktop:** tested against 1.6.7's custom Vencord loader. Use a current release.
 
 For a portable or unlisted installation, click **Browse** and select Vesktop's
 data folder (normally `%APPDATA%\vesktop` on Windows, `~/.config/vesktop` on Linux,
-or `Data` beside portable Vesktop). Open Vesktop once first so the profile exists.
+`~/Library/Application Support/vesktop` on Mac, or `Data` beside portable Windows
+Vesktop). Open Vesktop once first so the profile exists. On Mac, use Finder's
+**Go → Go to Folder** to reach the otherwise hidden Library folder.
 
 The first graphical release targets **Vesktop**, not the standard Discord app.
 For standard Discord or a browser userscript, use the existing advanced
 [source-build guide](INSTALL.md) or [Windows source-build guide](INSTALL-WINDOWS.md).
-ARM and macOS installer builds are not included in this release.
+Windows/Linux ARM and Intel Mac installer builds are not included.
+
+## Mac first launch
+
+This release is **not Apple-notarized or Developer ID signed**. It has an ad-hoc
+signature for ARM64 integrity, not a verified publisher identity. Download it
+only from this repository's Releases page.
+
+If macOS blocks the app after you try to open it, and you trust the download,
+go to **System Settings → Privacy & Security → Open Anyway**, then confirm Open.
+This creates an exception for this app; do not disable Gatekeeper or other
+system-wide security protections. See [Apple's guidance](https://support.apple.com/en-us/102445).
+Managed work/school Macs may require approval from their administrator.
+
+Once the installer is open, the installation itself only changes your own
+Vesktop profile. Quit Vesktop with **Cmd+Q** first; closing its window is not
+enough. You can eject the disk image after copying the installer app out of it.
 
 ## Existing custom plugins
 
@@ -74,13 +97,15 @@ modify your source checkout.
 - **No Vesktop found:** install/open Vesktop once, quit it, then click Refresh.
   Browse can select a portable or custom data folder.
 - **Vesktop is still running:** closing its window can leave it in the tray.
-  Right-click the tray icon and choose Quit.
+  Right-click the tray icon and choose Quit, or use **Cmd+Q** on Mac.
 - **Linux will not open the file:** extract the archive first. Its executable
   permission is stored in the archive. If your filesystem discarded it, open
   Properties → Permissions → Allow executing file as program.
 - **Windows publisher warning:** these initial builds are unsigned. Check that
   the download came from this repository's Releases page. Signing can be added
   when a code-signing certificate is available.
+- **Mac cannot open the app:** use the Apple Silicon download on macOS 14+.
+  For an unidentified-developer warning, see [Mac first launch](#mac-first-launch).
 - **Cannot reach GitHub:** Install and Repair use local files. Update needs a
   working connection. A rate limit or outage will leave your existing build active.
 - **Missing/broken Peeper:** quit Vesktop and choose Repair. If a new update caused

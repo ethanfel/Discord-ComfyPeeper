@@ -1,8 +1,8 @@
 ComfyPeeper for Vesktop
 
 1. Install Vesktop from https://vesktop.dev/ if you do not already use it.
-2. Open Vesktop once, then quit it using its tray icon.
-3. Open ComfyPeeper-Installer in this folder and click Install Peeper.
+2. Open Vesktop once, then quit it using its tray icon (Cmd+Q on Mac).
+3. Open ComfyPeeper-Installer (ComfyPeeper Installer.app on Mac) and click Install Peeper.
 4. Open Vesktop. Peeper is already enabled.
 
 No Python, Node, Git, pnpm, terminal commands, or administrator access required.
@@ -12,6 +12,14 @@ Linux: extract the whole archive before launching. The executable permission
 is preserved in the archive. If your file manager asks, choose Run/Execute.
 On file systems that discard executable permissions, enable "Allow executing
 file as program" in the file's Properties > Permissions.
+
+Mac: Apple Silicon (M-series) only, macOS 14 Sonoma or newer. Copy ComfyPeeper
+Installer to Applications or a folder you own before opening; you can then eject
+the disk image. No Rosetta or Homebrew is required. Intel Macs are not supported.
+The app is ad-hoc signed but NOT Apple-notarized or Developer ID signed. If it is
+blocked and you trust this repository's download, first try to open it, then use
+System Settings > Privacy & Security > Open Anyway. Do not disable Gatekeeper.
+Apple's guidance: https://support.apple.com/en-us/102445
 
 Supports 64-bit Windows 10/11 and x86-64 Linux with glibc 2.35+ (Ubuntu 22.04+,
 Debian 12+, Fedora, Arch). Linux needs a graphical desktop with X11/XWayland.
