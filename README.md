@@ -79,6 +79,18 @@ metadata).
 
 ## 🚀 Install
 
+### Recommended: Windows or Linux graphical installer
+
+1. Install [Vesktop](https://vesktop.dev/), open it once, then fully quit it from the tray.
+2. Download [Windows (.exe)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Windows-x64.exe) or [Linux (.tar.gz)](https://github.com/ethanfel/Discord-ComfyPeeper/releases/latest/download/ComfyPeeper-Setup-Linux-x64.tar.gz). On Linux, extract the archive first.
+3. Open the installer, click **Install Peeper**, then reopen Vesktop.
+
+No developer tools or administrator access needed. The installer includes Vencord + Peeper,
+enables the plugin, and supports updates, repair, rollback, and removal.
+See the [quick setup guide](docs/EASY-INSTALL.md) for supported systems and troubleshooting.
+
+### Advanced: source builds, standard Discord, and browser
+
 > Custom plugins require a **Vencord built from source** — the official Vencord installer build
 > can't load user-plugins. You do **not** build Discord or Vesktop from source: regular installed
 > Discord/Vesktop are the hosts. See the **[full install guide → docs/INSTALL.md](docs/INSTALL.md)**
