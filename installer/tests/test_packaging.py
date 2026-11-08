@@ -5,9 +5,30 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 build_command = runpy.run_path(str(ROOT / "scripts/package-installer.py"))["build_command"]
+minimum_macos_versions = runpy.run_path(str(ROOT / "scripts/test-macos-installer.py"))["minimum_macos_versions"]
 
 
 class PackagingTests(unittest.TestCase):
+    def test_macos_deployment_targets_ignore_sdk_and_library_versions(self):
+        commands = """Load command 1
+              cmd LC_BUILD_VERSION
+          cmdsize 32
+         platform 1
+            minos 11.0
+              sdk 15.5
+Load command 2
+              cmd LC_ID_DYLIB
+          current version 15.0.0
+Load command 3
+              cmd LC_VERSION_MIN_MACOSX
+          cmdsize 16
+          version 14.0
+              sdk 15.5
+"""
+        self.assertEqual(minimum_macos_versions(commands), [(11, 0, 0), (14, 0, 0)])
+        self.assertEqual(minimum_macos_versions("cmd LC_BUILD_VERSION\nminos 15.0"), [(15, 0, 0)])
+        self.assertEqual(minimum_macos_versions("no deployment target"), [])
+
     def test_macos_is_native_arm64_app_bundle(self):
         name, command = build_command(ROOT, "darwin", "arm64")
         self.assertEqual(name, "ComfyPeeper Installer")

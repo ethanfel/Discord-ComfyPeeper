@@ -8,6 +8,8 @@ pnpm, or Python.
 - Move the real Vesktop test to checksum-pinned Vesktop 1.6.9, checking visible
   Discord UI, the module loader, Peeper's settings button, and native plugin IPC.
 - Explain recovery after Vesktop Repair replaces custom plugins with stock Vencord.
+- Replace GitHub's retired Mac runner with Apple Silicon macOS 15, retaining
+  the macOS 14 minimum and checking bundled native library deployment targets.
 
 **Updating from 0.1.2:** quit Vesktop and click **Update** in the Peeper installer.
 Its offline Repair button would reinstall the old incompatible bundle. Vesktop's

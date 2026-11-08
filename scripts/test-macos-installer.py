@@ -4,9 +4,44 @@
 from pathlib import Path
 import platform
 import plistlib
+import re
 import subprocess
 import sys
 import tempfile
+
+
+def minimum_macos_versions(commands: str) -> list[tuple[int, ...]]:
+    versions = []
+    for command in re.split(r"\nLoad command \d+", commands):
+        if re.search(r"\bcmd LC_BUILD_VERSION\b", command):
+            match = re.search(r"\bminos (\d+(?:\.\d+)+)", command)
+        elif re.search(r"\bcmd LC_VERSION_MIN_MACOSX\b", command):
+            match = re.search(r"\bversion (\d+(?:\.\d+)+)", command)
+        else:
+            continue
+        if match:
+            version = tuple(map(int, match[1].split(".")))
+            versions.append((version + (0, 0, 0))[:3])
+    return versions
+
+
+def verify_deployment_targets(app: Path) -> None:
+    # A plist minimum alone cannot make newer native libraries run on Sonoma.
+    magics = {b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf",
+              b"\xcf\xfa\xed\xfe", b"\xca\xfe\xba\xbe", b"\xbe\xba\xfe\xca",
+              b"\xca\xfe\xba\xbf", b"\xbf\xba\xfe\xca"}
+    seen = set()
+    for path in app.rglob("*"):
+        if not path.is_file() or path.resolve() in seen:
+            continue
+        seen.add(path.resolve())
+        with path.open("rb") as stream:
+            if stream.read(4) not in magics:
+                continue
+        commands = subprocess.check_output(["otool", "-arch", "arm64", "-l", str(path)], text=True)
+        versions = minimum_macos_versions(commands)
+        if not versions or max(versions) > (14, 0, 0):
+            raise SystemExit(f"Native binary cannot target macOS 14: {path.relative_to(app)} ({versions})")
 
 
 def main():
@@ -36,6 +71,7 @@ def main():
         info = plistlib.loads((app / "Contents/Info.plist").read_bytes())
         if info["LSMinimumSystemVersion"] != "14.0":
             raise SystemExit("Unexpected minimum macOS version")
+        verify_deployment_targets(app)
         # The CLI launch returns the actual exit code; LaunchServices exercises
         # the same launch path as double-clicking the app in Finder.
         for launch, result in (([str(binary)], output / "smoke-test.txt"),

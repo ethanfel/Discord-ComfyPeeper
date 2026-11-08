@@ -4,8 +4,11 @@ The user-facing instructions are in [EASY-INSTALL.md](../docs/EASY-INSTALL.md).
 The GUI uses Python/Tk, packaged with its runtime using PyInstaller. End users
 do not install Python. Linux builds run on Ubuntu 22.04 to set a glibc 2.35 baseline;
 Windows builds run on Windows Server 2022 using Python 3.12 x64.
-Mac builds use the GitHub-hosted `macos-14` Apple Silicon runner and native Python
-3.12 ARM64, targeting macOS 14+. No Intel or universal Mac build is published.
+Mac builds use the GitHub-hosted `macos-15` Apple Silicon runner and native Python
+3.12 ARM64, targeting macOS 14+. The packaged native binaries are checked for
+deployment targets no newer than 14.0; runtime smoke tests run on macOS 15.
+GitHub retired its macOS 14 runners on November 2, 2026. No Intel or universal
+Mac build is published.
 
 ## Test locally
 
