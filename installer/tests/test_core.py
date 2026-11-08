@@ -62,6 +62,26 @@ class InstallationTests(unittest.TestCase):
         self.assertEqual(settings["plugins"]["OtherPlugin"], {"enabled": True})
         self.assertEqual(settings["themeLinks"], ["keep-me"])
 
+    def test_repair_recovers_after_vesktop_replaces_custom_build_with_stock(self):
+        self.inst.activate(make_bundle())
+        latest = make_bundle("0.1.3")
+        self.inst.activate(latest)
+        before = self.inst.info()
+        selected = self.inst.release_path(before["current"]["directory"])
+        for name in core.REQUIRED_FILES - {"package.json"}:
+            (selected / name).write_bytes(b"stock Vencord without ComfyPeeper")
+        # Repair may also leave Vesktop pointing back at its managed directory.
+        core.atomic_write(self.profile / "state.json", core.encode_object(self.state))
+        self.inst.repair()
+        repaired = self.inst.verify_release(self.inst.info())
+        self.assertNotEqual(repaired, selected)
+        self.assertEqual(self.inst.info()["previous"], before["previous"])
+        self.assertEqual(core.read_object(self.profile / "state.json")["vencordDir"], str(repaired))
+        settings = core.read_object(self.profile / "settings/settings.json")
+        self.assertTrue(settings["plugins"]["ComfyPeeper"]["enabled"])
+        self.assertEqual(settings["plugins"]["ComfyPeeper"]["endpoints"], "preserve")
+        self.assertEqual(settings["plugins"]["OtherPlugin"], {"enabled": True})
+
     def test_same_release_reinstall_preserves_rollback_and_reuses_files(self):
         self.inst.activate(make_bundle())
         latest = make_bundle("0.1.1")

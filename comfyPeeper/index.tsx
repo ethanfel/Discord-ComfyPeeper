@@ -6,9 +6,10 @@
 
 import "./styles.css";
 
+import { Button } from "@components/Button";
 import ErrorBoundary from "@components/ErrorBoundary";
 import definePlugin from "@utils/types";
-import { Button, ChannelStore, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
+import { ChannelStore, React, ReactDOM, useEffect, useRef, useState } from "@webpack/common";
 
 import { imageAssociateContextPatch, messageAssociateContextPatch } from "./associate";
 import { addDropItem, mountDropInbox, unmountDropInbox } from "./dropInbox";
@@ -57,10 +58,10 @@ function BadgePill({ att, meta, compact, source }: { att: any; meta: WorkflowMet
             </span>
 
             {!compact && <>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(json, "Workflow JSON copied")}>Copy</Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${baseName}.json`, json)}>Save .json</Button>
+                <Button size="small" variant="secondary" onClick={() => copyWithToast(json, "Workflow JSON copied")}>Copy</Button>
+                <Button size="small" variant="secondary" onClick={() => downloadJson(`${baseName}.json`, json)}>Save .json</Button>
                 {meta.prompt && endpoints.map(ep => (
-                    <Button key={ep.url} size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={() => queue(ep, meta.prompt!)}>
+                    <Button key={ep.url} size="small" variant="positive" onClick={() => queue(ep, meta.prompt!)}>
                         ▶ {endpoints.length > 1 ? `Queue → ${ep.label}` : "Queue"}
                     </Button>
                 ))}

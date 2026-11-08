@@ -28,11 +28,10 @@ const isMedia = (a: any) => { const k = kindOf(a); return k === "png" || k === "
 const mediaOf = (a: any): Media => ({ url: a.url, isVideo: kindOf(a) === "video", filename: a.filename });
 
 async function doAssociate(entry: SavedWf, media: Media) {
-    showToast(`Linking media to “${truncate(entry.title)}”…`, "message");
+    showToast({ text: `Linking media to “${truncate(entry.title)}”…`, variant: "default" });
     const thumb = await makeMediaThumb(media.url, media.isVideo);
     await setEntryMedia(entry.id, { thumb, sourceUrl: media.url, isVideo: media.isVideo });
-    showToast(thumb ? `Linked ✓ — “${truncate(entry.title)}”` : `Linked (preview unavailable) — “${truncate(entry.title)}”`,
-        thumb ? "success" : "message");
+    showToast({ text: thumb ? `Linked ✓ — “${truncate(entry.title)}”` : `Linked (preview unavailable) — “${truncate(entry.title)}”`, variant: thumb ? "success" : "default" });
 }
 
 /** Associate, warning first if the target already has a preview. */

@@ -51,7 +51,7 @@ jobs:
       - name: Verify and build the universal Peeper bundle
         working-directory: build/vencord
         run: |
-          pnpm testTsc
+          pnpm test:ts
           pnpm exec eslint src/userplugins/comfyPeeper
           pnpm build --standalone --disable-updater
       - name: Package bundle and corresponding source
@@ -143,8 +143,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb libnss3 libatk-bridge2.0-0 libgtk-3-0 libgbm1 libasound2
           mkdir -p build/vesktop-runtime
-          curl --fail --location --retry 3 https://github.com/Vencord/Vesktop/releases/download/v1.6.7/vesktop-1.6.7.tar.gz -o build/vesktop-runtime/vesktop.tar.gz
-          python -c "import hashlib; from pathlib import Path; assert hashlib.sha256(Path('build/vesktop-runtime/vesktop.tar.gz').read_bytes()).hexdigest() == '152786c72cf97f510b3a527829568083dd5c79b723cf459c13d430b6ca385b66'"
+          curl --fail --location --retry 3 https://github.com/Vencord/Vesktop/releases/download/v1.6.9/vesktop-1.6.9.tar.gz -o build/vesktop-runtime/vesktop.tar.gz
+          python -c "import hashlib; from pathlib import Path; assert hashlib.sha256(Path('build/vesktop-runtime/vesktop.tar.gz').read_bytes()).hexdigest() == 'c9eabe5e0a6dc1ee3f48a32f9b876ecbf938738fef1a76bc2350eb82f3bc8517'"
           tar -xzf build/vesktop-runtime/vesktop.tar.gz -C build/vesktop-runtime --strip-components=1
       - name: Launch real Vesktop and invoke Peeper through native IPC
         run: xvfb-run -a python scripts/test-vesktop.py --vesktop build/vesktop-runtime/vesktop

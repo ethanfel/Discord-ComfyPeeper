@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Modal, NavigationRouter, openModal, React, showToast, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Modal, NavigationRouter, openModal, React, showToast, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { backupEntry, canBackup, ConflictResolve, countConflicts, exportLibrary, getLibrary, importLibrary, parseLibraryFile, removeEntry, SavedWf } from "./library";
@@ -87,11 +88,11 @@ function Card({ e, onDelete, onChanged, close }: { e: SavedWf; onDelete: () => v
     const post = () => { close(); jump(e.messageLink); };
     const doBackup = async () => {
         setBacking(true);
-        showToast("Backing up locally…", "message");
+        showToast({ text: "Backing up locally…", variant: "default" });
         const r = await backupEntry(e);
         setBacking(false);
-        if (r.ok) { showToast("Backed up locally ✓", "success"); onChanged(); }
-        else showToast(`Backup failed: ${r.error || "error"}`, "failure");
+        if (r.ok) { showToast({ text: "Backed up locally ✓", variant: "success" }); onChanged(); }
+        else showToast({ text: `Backup failed: ${r.error || "error"}`, variant: "critical" });
     };
     return (
         <div className="cwg-lib-card">
@@ -107,17 +108,17 @@ function Card({ e, onDelete, onChanged, close }: { e: SavedWf; onDelete: () => v
                 <div className="cwg-lib-date" title={new Date(e.savedAt).toLocaleString()}>{relTime(e.savedAt)}</div>
             </div>
             <div className="cwg-lib-actions">
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={open}>Open</Button>
-                {e.messageLink && <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={post}>Post</Button>}
+                <Button size="small" variant="primary" onClick={open}>Open</Button>
+                {e.messageLink && <Button size="small" variant="secondary" onClick={post}>Post</Button>}
                 {(e.localPath || e.mediaIsVideo || e.thumb) && (
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => openRepostPicker(e.sourceUrl || "", undefined, e.localPath)}>↪ Repost</Button>
+                    <Button size="small" variant="secondary" onClick={() => openRepostPicker(e.sourceUrl || "", undefined, e.localPath)}>↪ Repost</Button>
                 )}
                 {!e.localPath && canBackup(e) && (
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} disabled={backing} onClick={doBackup}>
+                    <Button size="small" variant="secondary" disabled={backing} onClick={doBackup}>
                         {backing ? "Backing…" : "💾 Backup"}
                     </Button>
                 )}
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.RED} onClick={onDelete}>Delete</Button>
+                <Button size="small" variant="dangerPrimary" onClick={onDelete}>Delete</Button>
             </div>
         </div>
     );
@@ -153,8 +154,8 @@ function ImportDialog({ rootProps, total, conflicts, onConfirm }: { rootProps: a
                 </div>
             )}
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "16px" }}>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => rootProps.onClose()}>Cancel</Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={apply}>Import</Button>
+                <Button size="small" variant="secondary" onClick={() => rootProps.onClose()}>Cancel</Button>
+                <Button size="small" variant="primary" onClick={apply}>Import</Button>
             </div>
         </Modal>
     );
@@ -170,8 +171,8 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
     const doExport = async () => {
         try {
             const n = await exportLibrary();
-            showToast(`Exported ${n} workflow${n === 1 ? "" : "s"}`, "success");
-        } catch { showToast("Export failed", "failure"); }
+            showToast({ text: `Exported ${n} workflow${n === 1 ? "" : "s"}`, variant: "success" });
+        } catch { showToast({ text: "Export failed", variant: "critical" }); }
     };
     const onFile = async (ev: React.ChangeEvent<HTMLInputElement>) => {
         const file = ev.currentTarget.files?.[0];
@@ -179,8 +180,8 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
         if (!file) return;
         let entries;
         try { entries = parseLibraryFile(await file.text()); }
-        catch { showToast("Not a valid ComfyPeeper library file", "failure"); return; }
-        if (!entries.length) { showToast("No workflows found in that file", "failure"); return; }
+        catch { showToast({ text: "Not a valid ComfyPeeper library file", variant: "critical" }); return; }
+        if (!entries.length) { showToast({ text: "No workflows found in that file", variant: "critical" }); return; }
         const conflicts = await countConflicts(entries);
         openModal(rp => (
             <ImportDialog
@@ -190,7 +191,7 @@ function LibraryModal({ rootProps }: { rootProps: any; }) {
                 onConfirm={async resolve => {
                     const r = await importLibrary(entries, resolve);
                     reload();
-                    showToast(`Imported: ${r.added} new, ${r.updated} updated, ${r.skipped} skipped`, "success");
+                    showToast({ text: `Imported: ${r.added} new, ${r.updated} updated, ${r.skipped} skipped`, variant: "success" });
                 }}
             />
         ));

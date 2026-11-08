@@ -79,9 +79,9 @@ async function fetchFile(media: Media): Promise<File | null> {
 
 /** Re-upload the media to a target channel as a fresh message. */
 export async function repost(channelId: string, label: string, media: Media) {
-    showToast(`Reposting to ${label}…`, "message");
+    showToast({ text: `Reposting to ${label}…`, variant: "default" });
     const file = await fetchFile(media);
-    if (!file) { showToast("Couldn't fetch that image", "failure"); return; }
+    if (!file) { showToast({ text: "Couldn't fetch that image", variant: "critical" }); return; }
     try {
         const upload = new CloudUpload({ file, isThumbnail: false, platform: CloudUploadPlatform.WEB }, channelId);
         upload.on("complete", () => {
@@ -96,15 +96,15 @@ export async function repost(channelId: string, label: string, media: Media) {
                     attachments: [{ id: "0", filename: upload.filename, uploaded_filename: upload.uploadedFilename }]
                 }
             }).then(
-                () => showToast(`Reposted to ${label} ✓`, "success"),
-                (e: any) => showToast(`${label} rejected it (${e?.status || "error"})`, "failure")
+                () => showToast({ text: `Reposted to ${label} ✓`, variant: "success" }),
+                (e: any) => showToast({ text: `${label} rejected it (${e?.status || "error"})`, variant: "critical" })
             );
         });
-        upload.on("error", () => showToast("Upload failed", "failure"));
+        upload.on("error", () => showToast({ text: "Upload failed", variant: "critical" }));
         upload.upload();
     } catch (e) {
         logger.error("repost failed", e);
-        showToast("Repost failed", "failure");
+        showToast({ text: "Repost failed", variant: "critical" });
     }
 }
 
@@ -207,7 +207,7 @@ export const channelRepostFavPatch: NavContextMenuPatchCallback = (children, pro
             label={isFav ? "Remove from ComfyPeeper favourites" : "Add to ComfyPeeper favourites"}
             action={() => {
                 toggleFavorite({ id: ch.id, label: "#" + (ch.name || ch.id), guildId: ch.guild_id });
-                showToast(isFav ? "Removed from repost favourites" : "Added to repost favourites ★", "success");
+                showToast({ text: isFav ? "Removed from repost favourites" : "Added to repost favourites ★", variant: "success" });
             }}
         />
     );

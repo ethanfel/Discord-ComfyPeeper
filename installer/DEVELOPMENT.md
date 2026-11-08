@@ -36,10 +36,11 @@ self-test both directly and through LaunchServices (Finder-style opening).
 This verifies packaging and GUI startup, not Gatekeeper approval/notarization
 or a logged-in Vesktop session. No Apple signing credentials are configured.
 
-The separate `vesktop` CI job downloads a checksum-pinned official Vesktop 1.6.7
+The separate `vesktop` CI job downloads a checksum-pinned official Vesktop 1.6.9
 Linux release, installs the actual bundle in a disposable profile, and starts the
 unmodified app under Xvfb. A loopback DevTools connection verifies Peeper's renderer
-registration, enabled setting, and native IPC by parsing an in-memory workflow.
+registration, enabled setting, native IPC by parsing an in-memory workflow,
+Discord's rendered logged-out UI/module loader, and Peeper's settings button.
 It never signs in, posts messages, or connects to ComfyUI. The scripts refuse to
 run outside GitHub Actions so they cannot accidentally reuse a personal desktop.
 This gate requires access to Discord's logged-out web app; it does not replace

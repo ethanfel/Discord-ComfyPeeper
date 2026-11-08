@@ -66,7 +66,8 @@ other settings you changed after installation.
   are detected; packaging confinement can vary by distribution.
 - **Mac, Apple Silicon only (M-series):** macOS 14 Sonoma or newer. The installer
   is native ARM64; no Rosetta or Homebrew needed. Intel Macs are not supported.
-- **Vesktop:** tested against 1.6.7's custom Vencord loader. Use a current release.
+- **Vesktop:** the 0.1.3 bundle targets Vesktop 1.6.9 with Vencord 1.15.16.
+  Update Vesktop before installing this bundle.
 
 For a portable or unlisted installation, click **Browse** and select Vesktop's
 data folder (normally `%APPDATA%\vesktop` on Windows, `~/.config/vesktop` on Linux,
@@ -122,8 +123,14 @@ modify your source checkout.
   For an unidentified-developer warning, see [Mac first launch](#mac-first-launch).
 - **Cannot reach GitHub:** Install and Repair use local files. Update needs a
   working connection. A rate limit or outage will leave your existing build active.
-- **Missing/broken Peeper:** quit Vesktop and choose Repair. If a new update caused
-  the issue, choose Roll back.
+- **Black screen after updating Vesktop:** quit Vesktop, then use **Update in the
+  ComfyPeeper installer** to get a compatible Vencord + Peeper bundle. Offline
+  Repair reinstalls the saved version, which may still be too old for Vesktop.
+- **Peeper disappeared after Vesktop's Repair:** Vesktop's built-in Repair
+  downloads stock Vencord, without custom plugins. Quit Vesktop and use **Repair
+  in the ComfyPeeper installer** to restore Peeper, or **Update** if your bundle
+  is old. Vesktop's Repair can overwrite even a selected custom-build folder;
+  disabling the Vencord updater does not prevent this explicit repair action.
 - **Interrupted installation:** rerun the installer while Vesktop is closed and
   choose Repair. A small journal restores interrupted settings writes before retrying.
 - **Saved repair bundle missing or damaged:** choose Update to download a verified

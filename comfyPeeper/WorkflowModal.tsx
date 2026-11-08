@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-import { Button, Modal, openModal, React, showToast, useEffect, useState } from "@webpack/common";
+import { Button } from "@components/Button";
+import { Modal, openModal, React, showToast, useEffect, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { entryId, hasEntry, loadLocalMediaUrl, SaveSource, saveToLibrary } from "./library";
@@ -90,12 +91,12 @@ function DownloadRow({ target }: { target: Endpoint; }) {
     const [busy, setBusy] = useState(false);
     const go = async () => {
         const ref = parseCivitaiRef(url);
-        if (!ref.versionId && !ref.modelId) { showToast("Paste a Civitai model/version URL or id", "failure"); return; }
+        if (!ref.versionId && !ref.modelId) { showToast({ text: "Paste a Civitai model/version URL or id", variant: "critical" }); return; }
         setBusy(true);
         try {
             const r = await Native.loraManagerDownload(target.url, ref.versionId ?? "", ref.modelId, ref.source);
-            if (r.ok) showToast(`Downloading on ${target.label} — re-check in a moment`, "success");
-            else showToast(`Download failed: ${(r.data || "").slice(0, 160) || `HTTP ${r.status}`}`, "failure");
+            if (r.ok) showToast({ text: `Downloading on ${target.label} — re-check in a moment`, variant: "success" });
+            else showToast({ text: `Download failed: ${(r.data || "").slice(0, 160) || `HTTP ${r.status}`}`, variant: "critical" });
         } finally { setBusy(false); }
     };
     return (
@@ -183,7 +184,7 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
         const title = multi ? `${att.filename || "workflow"} — ${v.label}` : (att.filename || "workflow");
         await saveToLibrary({ ...att, filename: title }, { workflow: v.workflow, prompt: v.prompt, kind: meta.kind }, { ...source, id: idFor(vi) });
         setSaved(true);
-        showToast("Saved to library ★", "success");
+        showToast({ text: "Saved to library ★", variant: "success" });
     };
     const switchVariant = (i: number) => {
         setVi(i); setCompat(null); setHl(null);
@@ -287,24 +288,24 @@ function WorkflowModal({ rootProps, att, meta, source }: { rootProps: any; att: 
             )}
 
             <div className="cwg-footer">
-                <Button size={Button.Sizes.SMALL} color={saved ? Button.Colors.GREEN : Button.Colors.BRAND} disabled={saved} onClick={onSave}>
+                <Button size="small" variant={saved ? "positive" : "primary"} disabled={saved} onClick={onSave}>
                     {saved ? "★ Saved" : "★ Save"}
                 </Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => { rootProps.onClose(); openLibraryModal(); }}>📚 Library</Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => copyWithToast(v.workflow ?? v.prompt ?? "", "Copied")}>Copy</Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => downloadJson(`${base}.json`, v.workflow ?? v.prompt ?? "")}>Save .json</Button>
+                <Button size="small" variant="secondary" onClick={() => { rootProps.onClose(); openLibraryModal(); }}>📚 Library</Button>
+                <Button size="small" variant="secondary" onClick={() => copyWithToast(v.workflow ?? v.prompt ?? "", "Copied")}>Copy</Button>
+                <Button size="small" variant="secondary" onClick={() => downloadJson(`${base}.json`, v.workflow ?? v.prompt ?? "")}>Save .json</Button>
                 {v.prompt && endpoints.length > 0 && (
-                    <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} disabled={checking} onClick={runCheck}>
+                    <Button size="small" variant="primary" disabled={checking} onClick={runCheck}>
                         {checking ? "Checking…" : "Check servers"}
                     </Button>
                 )}
                 {v.prompt && endpoints.map(ep => (
-                    <Button key={ep.url} size={Button.Sizes.SMALL} color={Button.Colors.GREEN} onClick={() => queue(ep, v.prompt!)}>
+                    <Button key={ep.url} size="small" variant="positive" onClick={() => queue(ep, v.prompt!)}>
                         ▶ {endpoints.length > 1 ? ep.label : "Queue"}
                     </Button>
                 ))}
                 {advanced && v.workflow && companions.map(c => (
-                    <Button key={"send-" + c.ep.url} size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => sendToOpenTab(c.ep, v.workflow!)}>
+                    <Button key={"send-" + c.ep.url} size="small" variant="primary" onClick={() => sendToOpenTab(c.ep, v.workflow!)}>
                         ⇪ Send → {c.name}
                     </Button>
                 ))}

@@ -26,7 +26,7 @@ Apple's guidance: https://support.apple.com/en-us/102445
 
 Supports 64-bit Windows 10/11 and x86-64 Linux with glibc 2.35+ (Ubuntu 22.04+,
 Debian 12+, Fedora, Arch). Linux needs a graphical desktop with X11/XWayland.
-Vesktop 1.6.7 or newer is recommended. Native, Flatpak and portable profiles
+Vesktop 1.6.9 or newer is recommended. Native, Flatpak and portable profiles
 are detected; Browse can select an unlisted profile.
 
 The easy installer targets Vesktop. The normal Discord app and browser

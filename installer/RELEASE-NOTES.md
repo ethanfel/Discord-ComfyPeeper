@@ -1,15 +1,17 @@
 Install ComfyPeeper on Windows, Linux, or Apple Silicon Mac without Git, Node,
 pnpm, or Python.
 
-## New in 0.1.2
+## New in 0.1.3
 
-- Update repairs missing/corrupt caches using the fresh verified download.
-- Identical reinstalls preserve rollback; healthy repairs reuse existing files.
-- Malformed settings produce useful errors instead of crashing the installer.
-- Snap selections survive revision changes; Repair migrates old selections.
-- Unused installer bundles/caches are safely collected after committed changes.
-- Installer updates are checked separately from Peeper bundle updates.
-- Regression coverage and a real Vesktop startup/native-plugin test gate releases.
+- Update bundled Vencord to 1.15.16 for Vesktop 1.6.9 and Discord's new module loader.
+- Migrate Peeper's buttons and notifications to the current Vencord APIs.
+- Move the real Vesktop test to checksum-pinned Vesktop 1.6.9, checking visible
+  Discord UI, the module loader, Peeper's settings button, and native plugin IPC.
+- Explain recovery after Vesktop Repair replaces custom plugins with stock Vencord.
+
+**Updating from 0.1.2:** quit Vesktop and click **Update** in the Peeper installer.
+Its offline Repair button would reinstall the old incompatible bundle. Vesktop's
+own Repair installs stock Vencord and removes custom plugins from that build.
 
 **Existing users: download this new installer app once.** Updating the Peeper
 bundle from an old installer cannot update that installer's own code.
@@ -27,7 +29,7 @@ The installer includes the tested bundle, so installation works offline.
 Use the same app for **Update**, **Repair**, **Roll back**, and **Remove**.
 Your login, plugin settings, and saved workflow library are preserved.
 
-This first easy installer targets **Vesktop 1.6.7+**. Standard Discord and browser
+This installer targets **Vesktop 1.6.9+**. Standard Discord and browser
 users can still use the source-build guides. Other custom plugins are not part
 of the prebuilt bundle; the installer detects existing custom builds and explains
 the change before installation.

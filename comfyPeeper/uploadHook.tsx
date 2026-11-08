@@ -5,10 +5,11 @@
  */
 
 import { MessageObject, MessageSendListener } from "@api/MessageEvents";
+import { Button } from "@components/Button";
 import { CloudUpload as TCloudUpload } from "@vencord/discord-types";
 import { CloudUploadPlatform, DraftType } from "@vencord/discord-types/enums";
 import { findLazy } from "@webpack";
-import { Button, Modal, openModal, React, showToast, UploadAttachmentStore, useState } from "@webpack/common";
+import { Modal, openModal, React, showToast, UploadAttachmentStore, useState } from "@webpack/common";
 
 import { NodeIcon } from "./icons";
 import { settings } from "./settings";
@@ -112,8 +113,8 @@ function ChooseDialog({ rootProps, candidates, resolve }: { rootProps: any; cand
                 ))}
             </div>
             <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end", marginTop: "16px" }}>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.PRIMARY} onClick={() => done([])}>Skip</Button>
-                <Button size={Button.Sizes.SMALL} color={Button.Colors.BRAND} onClick={() => done(candidates.filter(c => sel.has(c.base)))}>Attach selected</Button>
+                <Button size="small" variant="secondary" onClick={() => done([])}>Skip</Button>
+                <Button size="small" variant="primary" onClick={() => done(candidates.filter(c => sel.has(c.base)))}>Attach selected</Button>
             </div>
         </Modal>
     );
@@ -168,7 +169,7 @@ export const onBeforeMessageSend: MessageSendListener = async (channelId, _msg: 
             try { done += await attachWorkflows(channelId, uploads, c); }
             catch (e) { logger.error("attach workflow failed for " + c.videoName, e); }
         }
-        if (done) showToast(`Attached ${done} workflow .json${done > 1 ? "s" : ""}`, "success");
+        if (done) showToast({ text: `Attached ${done} workflow .json${done > 1 ? "s" : ""}`, variant: "success" });
     } catch (e) {
         logger.error("onBeforeMessageSend error", e); // never block the send
     }

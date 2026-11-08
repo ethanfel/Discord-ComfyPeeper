@@ -109,17 +109,17 @@ function describeQueueError(status: number, data: string): string {
 }
 
 export async function queue(ep: Endpoint, promptJson: string) {
-    showToast(`Queuing on ${ep.label}…`, "message");
+    showToast({ text: `Queuing on ${ep.label}…`, variant: "default" });
     const r = await Native.queuePrompt(ep.url, promptJson, getClientId());
-    if (r.ok) { showToast(`Queued on ${ep.label} ✓`, "success"); return; }
+    if (r.ok) { showToast({ text: `Queued on ${ep.label} ✓`, variant: "success" }); return; }
     logger.warn("queue failed", r);
 
     // On a validation failure, find out which nodes the server is missing.
     const miss = await Native.getMissingNodes(ep.url, promptJson).catch(() => null);
     if (miss?.ok && miss.missing?.length) {
-        showToast(`${ep.label}: missing ${miss.missing.length} node(s) — ${miss.missing.join(", ")}`, "failure");
+        showToast({ text: `${ep.label}: missing ${miss.missing.length} node(s) — ${miss.missing.join(", ")}`, variant: "critical" });
     } else {
-        showToast(`${ep.label} rejected it: ${describeQueueError(r.status, r.data).slice(0, 220)}`, "failure");
+        showToast({ text: `${ep.label} rejected it: ${describeQueueError(r.status, r.data).slice(0, 220)}`, variant: "critical" });
     }
 }
 
@@ -144,10 +144,10 @@ export async function findCompanions(eps: Endpoint[]): Promise<Companion[]> {
 
 /** Ask a companion to open the workflow in its live ComfyUI editor tab. */
 export async function sendToOpenTab(ep: Endpoint, workflowJson: string) {
-    showToast(`Sending to ${ep.label}…`, "message");
+    showToast({ text: `Sending to ${ep.label}…`, variant: "default" });
     const r = await Native.sendToComfyUI(ep.url, workflowJson);
-    if (r.ok) showToast(`Sent to ${ep.label} — open/focus a ComfyUI tab to see it`, "success");
-    else showToast(`Send failed: ${(r.data || `HTTP ${r.status}`).slice(0, 200)}`, "failure");
+    if (r.ok) showToast({ text: `Sent to ${ep.label} — open/focus a ComfyUI tab to see it`, variant: "success" });
+    else showToast({ text: `Send failed: ${(r.data || `HTTP ${r.status}`).slice(0, 200)}`, variant: "critical" });
 }
 
 /* ----------------------- advanced mode: LoRA presence --------------------- */
@@ -261,7 +261,7 @@ export function downloadJson(name: string, text: string) {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (e) {
         logger.error("download failed", e);
-        showToast("Could not save file", "failure");
+        showToast({ text: "Could not save file", variant: "critical" });
     }
 }
 

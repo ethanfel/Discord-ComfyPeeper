@@ -5,8 +5,9 @@
  */
 
 import { definePluginSettings } from "@api/Settings";
+import { Button } from "@components/Button";
 import { OptionType } from "@utils/types";
-import { Button, React } from "@webpack/common";
+import { React } from "@webpack/common";
 
 import { openLibraryModal } from "./LibraryModal";
 

@@ -71,16 +71,38 @@ try {
         const probe = await command("Runtime.evaluate", {
             expression: `({ plugin: !!globalThis.Vencord?.Plugins?.plugins?.ComfyPeeper,
                 enabled: !!globalThis.Vencord?.Settings?.plugins?.ComfyPeeper?.enabled,
-                native: typeof globalThis.VencordNative?.pluginHelpers?.ComfyPeeper?.fetchWorkflow === "function" })`,
+                native: typeof globalThis.VencordNative?.pluginHelpers?.ComfyPeeper?.fetchWorkflow === "function",
+                webpack: typeof globalThis.Vencord?.Webpack?.wreq === "function",
+                rendered: (document.querySelector("#app-mount")?.innerText.trim().length || 0) > 40 })`,
             returnByValue: true,
         });
         last = probe.result?.value || {};
-        if (last.plugin && last.enabled && last.native) break;
+        if (last.plugin && last.enabled && last.native && last.webpack && last.rendered) break;
         socket.close();
         socket = undefined;
         await delay(500);
     }
-    assert.ok(last.plugin && last.enabled && last.native, `Peeper did not load: ${JSON.stringify(last)}`);
+    assert.ok(last.plugin && last.enabled && last.native && last.webpack && last.rendered,
+        `Discord/Peeper did not render: ${JSON.stringify(last)}`);
+    const button = await command("Runtime.evaluate", {
+        expression: `(async () => {
+            const { React, createRoot } = Vencord.Webpack.Common;
+            const container = document.createElement("div");
+            document.body.appendChild(container);
+            const root = createRoot(container);
+            try {
+                root.render(React.createElement(Vencord.Plugins.plugins.ComfyPeeper.settings.def.openLibrary.component));
+                for (let i = 0; i < 50; i++) {
+                    if (container.querySelector("button")?.textContent.includes("Open saved workflows library")) return true;
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                return false;
+            } finally { root.unmount(); container.remove(); }
+        })()`,
+        awaitPromise: true, returnByValue: true,
+    });
+    assert.equal(button.exceptionDetails, undefined, "Peeper's settings button threw an exception");
+    assert.equal(button.result?.value, true, "Peeper's settings button did not render");
     const fixture = { last_node_id: 1, last_link_id: 0, nodes: [{ id: 1, type: "EmptyLatentImage" }], links: [], version: 0.4 };
     const url = "data:application/json," + encodeURIComponent(JSON.stringify(fixture));
     const result = await command("Runtime.evaluate", {
@@ -90,7 +112,7 @@ try {
     assert.equal(result.exceptionDetails, undefined, "Native IPC invocation failed");
     assert.equal(result.result.value.ok, true);
     assert.deepEqual(JSON.parse(result.result.value.workflow), fixture);
-    console.log("PASS: real Vesktop startup, custom bundle, enabled Peeper renderer, native IPC, workflow JSON parsing");
+    console.log("PASS: real Vesktop startup, visible Discord UI, module loader, Peeper settings button, enabled plugin, native IPC, workflow JSON parsing");
 } catch (error) {
     console.error(logs);
     throw error;
